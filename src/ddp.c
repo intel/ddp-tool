@@ -38,6 +38,8 @@ extern uint16_t            i40e_supported_devices_size;
 extern supported_devices_t ice_supported_devices[];
 extern uint16_t            ice_supported_devices_size;
 
+ddp_output_function_t ddp_func_print_adapter_list;
+
 ddp_status_t
 validate_output_status(ddp_status_t status)
 {

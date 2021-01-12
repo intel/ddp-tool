@@ -233,6 +233,5 @@ typedef enum _adapter_parameter_t{
 
 /* Types defining specific function pointers for generating output*/
 typedef ddp_status_t (*ddp_output_function_t)(list_t*, ddp_status_value_t, char*);
-ddp_output_function_t ddp_func_print_adapter_list;
 
 #endif
