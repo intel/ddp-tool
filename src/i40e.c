@@ -32,6 +32,13 @@
 #include "i40e.h"
 #include "ddp.h"
 
+uint32_t unsupported_i40e_device_ids[] = {
+         0x374C, 0x374D, 0x37CC, 0x37CD, 0x37CE, 0x37CF,
+         0x37D0, 0x37D1, 0x37D2, 0x37D3, 0x37D4, 0x37D9,
+         0x3A84, 0x3A85, 0xF0A2, 0xF0A3
+};
+uint32_t unsupported_i40e_array_size = sizeof(unsupported_i40e_device_ids)/sizeof(unsupported_i40e_device_ids[0]);
+
 supported_devices_t i40e_supported_devices[] =
 {
     {0x8086, 0x0CF8, 0x8086, 0x0000, "Intel(R) Ethernet Controller X710 Intel(R) FPGA Programmable Acceleration Card N3000 for Networking"},
@@ -282,13 +289,19 @@ _i40e_discovery_device(adapter_t* adapter)
             status = _i40e_get_ddp_profile_list(adapter);
             if(status == DDP_NO_DDP_PROFILE)
             {
-                strcpy_sec(adapter->profile_info.name, DDP_PROFILE_NAME_LENGTH, "No profile loaded");
+                strcpy_sec(adapter->profile_info.name,
+                           DDP_PROFILE_NAME_LENGTH,
+                           NO_PROFILE,
+                           strlen(NO_PROFILE));
             }
         }
         else if(status == DDP_SUCCESS)
         {
             status = DDP_NO_SUPPORTED_ADAPTER;
-            strcpy_sec(adapter->profile_info.name, DDP_PROFILE_NAME_LENGTH, "Unsupported FW version");
+            strcpy_sec(adapter->profile_info.name,
+                       DDP_PROFILE_NAME_LENGTH,
+                       UNSUPPORTED_FW,
+                       strlen(UNSUPPORTED_FW));
         }
     } while(0);
 
@@ -296,7 +309,10 @@ _i40e_discovery_device(adapter_t* adapter)
        status != DDP_NO_DDP_PROFILE        &&
        status != DDP_NO_SUPPORTED_ADAPTER)
     {
-        strcpy_sec(adapter->profile_info.name, DDP_PROFILE_NAME_LENGTH, "-");
+        strcpy_sec(adapter->profile_info.name,
+                   DDP_PROFILE_NAME_LENGTH,
+                   EMPTY_MESSAGE,
+                   strlen(EMPTY_MESSAGE));
     }
 
     return status;

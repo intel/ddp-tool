@@ -182,8 +182,14 @@ print_table_adapter(adapter_t* adapter, FILE* stream)
     /* If device does not have any profile, set default strings in table */
     if(adapter->profile_info.section_size == 0)
     {
-        strcpy_sec(track_id_string, DDP_TRACKID_LENGTH, "-");
-        strcpy_sec(version_string, DDP_VERSION_LENGTH, "-");
+        strcpy_sec(track_id_string,
+                   DDP_TRACKID_LENGTH,
+                   EMPTY_MESSAGE,
+                   strlen(EMPTY_MESSAGE));
+        strcpy_sec(version_string,
+                   DDP_VERSION_LENGTH,
+                   EMPTY_MESSAGE,
+                   strlen(EMPTY_MESSAGE));
     }
     else
     {

@@ -107,6 +107,38 @@ static qdl_attr_field_t qdl_devlink_attr_table[] = {
 	{QDL_DEVLINK_ATTR_ID_END,                   QDL_ATTR_TYPE_INVALID}
 };
 
+static char* qdl_region_name[] = {
+	QDL_REGION_NAME_FLASH,
+	QDL_REGION_NAME_CAPS,
+	NULL
+};
+
+/**
+ * _qdl_validate_region_name
+ * @name: region name
+ *
+ * Checks if QDL supports provided region type.
+ * Returns QDL_SUCCESS if region supported, otherwise QDL_INVALID_PARAMS.
+ */
+qdl_status_t _qdl_validate_region_name(char* name)
+{
+	int i = 0;
+
+	/* Validate 'name' variable */
+	if(name == NULL) {
+		return QDL_INVALID_PARAMS;
+	}
+
+	/* Check if region is supported */
+	for(i = 0; qdl_region_name[i] != NULL; i++) {
+		if(strcmp(name, qdl_region_name[i]) == 0) {
+			return QDL_SUCCESS;
+		}
+	}
+
+	return QDL_INVALID_PARAMS;
+}
+
 /**
  * _qdl_get_msg_size
  * @cmd_type: command type for the message
@@ -140,18 +172,17 @@ int _qdl_get_msg_size(int cmd_type)
 		break;
 	case QDL_CMD_REGION_GET:
 		size = header_size + extra_header_size + 3 * str_attr_header_size + QDL_BUS_NAME_LENGTH + \
-		       QDL_PCI_LOCATION_NAME_LENGTH + NLA_ALIGN(strlen(QDL_REGION_NAME_FLASH) + 1);
+		       QDL_PCI_LOCATION_NAME_LENGTH + NLA_ALIGN(QDL_REGION_NAME_SIZE);
 		break;
 	case QDL_CMD_REGION_NEW:
 	case QDL_CMD_REGION_DEL:
 		size = header_size + extra_header_size + 4 * str_attr_header_size + QDL_BUS_NAME_LENGTH + \
-		       QDL_PCI_LOCATION_NAME_LENGTH + NLA_ALIGN(strlen(QDL_REGION_NAME_FLASH) + 1) + \
-		       sizeof(uint32_t);
+		       QDL_PCI_LOCATION_NAME_LENGTH + NLA_ALIGN(QDL_REGION_NAME_SIZE) + sizeof(uint32_t);
 		break;
 	case QDL_CMD_REGION_READ:
 		size = header_size + extra_header_size + 6 * str_attr_header_size + QDL_BUS_NAME_LENGTH + \
-		       QDL_PCI_LOCATION_NAME_LENGTH + NLA_ALIGN(strlen(QDL_REGION_NAME_FLASH) + 1) + \
-		       sizeof(uint32_t) + 2 * sizeof(uint64_t);
+		       QDL_PCI_LOCATION_NAME_LENGTH + NLA_ALIGN(QDL_REGION_NAME_SIZE) + sizeof(uint32_t) + \
+		       2 * sizeof(uint64_t);
 		break;
 	case QDL_CMD_FLASH_UPDATE:
 		size = header_size + extra_header_size + 3 * str_attr_header_size + QDL_BUS_NAME_LENGTH + \
@@ -821,8 +852,7 @@ qdl_status_t _qdl_get_int_nattr_by_type(uint8_t *msg, uint32_t msg_size, uint32_
 }
 
 /**
- * _qdl_get_nvm_buff
- * @dscr: QDL descriptor
+ * _qdl_get_region
  * @msg: buffer with messages
  * @msg_size: buffer size
  * @bin_buff: buffer for read NVM
@@ -843,8 +873,8 @@ qdl_status_t _qdl_get_int_nattr_by_type(uint8_t *msg, uint32_t msg_size, uint32_
  *      -> QDL_DEVLINK_ATTR_REGION_CHUNK_ADDR <uint64> # starting address for the last chunk
  * Returns QDL_SUCCESS if success, otherwise error code.
  */
-qdl_status_t _qdl_get_nvm_buff(uint8_t *msg, uint32_t msg_size, uint8_t *bin_buff, unsigned int *bin_size,
-		uint64_t *init_offset)
+qdl_status_t _qdl_get_region(uint8_t *msg, uint32_t msg_size, uint8_t *bin_buff, unsigned int *bin_size,
+			     uint64_t *init_offset)
 {
 	uint8_t *chunks_addr = NULL;
 	uint8_t *chunk_addr = NULL;

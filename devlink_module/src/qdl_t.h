@@ -22,7 +22,6 @@
 #include <stdio.h>
 
 /* Initialization flags */
-#define QDL_ZERO_INIT                    0
 #define QDL_INIT_NVM                     (1 << 0)
 #define QDL_INIT_CAPS                    (1 << 1)
 
@@ -97,12 +96,18 @@ typedef struct {
 } qdl_pci_t;
 
 typedef struct {
+	char* name;                                           /* Region name */
+	uint32_t snapshot_id;                                 /* Snapshot ID */
+	bool new_snapshot_id;                                 /* did QDL create snapshot ID */
+} qdl_region_t;
+
+typedef struct {
 	int socket;                                           /* socked descriptor */
 	struct sockaddr_nl socket_addr;                       /* socked address */
 	char net_interface[QDL_DRIVER_NET_INTERFACE_LENGTH];  /* interface name for device */
 	uint32_t id;                                          /* message type */
-	uint32_t snapshot_id;                                 /* snapshot ID for region cmd */
-	bool new_snapshot_id;                                 /* did QDL create snapshot ID */
+	qdl_region_t flash_region;                            /* flash region description */
+	qdl_region_t caps_region;                             /* caps region description */
 	qdl_pci_t pci;
 } qdl_struct;
 
@@ -203,9 +208,10 @@ typedef enum {
 
 /* Additional data for messages */
 typedef struct {
+	char* region;                     /* Region name */
 	uint64_t address;                 /* Address of the region to read */
 	uint64_t length;                  /* Length of the region to read */
-} qdl_msg_region_read_data_t;
+} qdl_msg_region_read_t;
 
 typedef struct {
 	char* minsrev_name;               /* MinSrev name */
