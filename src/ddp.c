@@ -37,6 +37,8 @@ extern supported_devices_t i40e_supported_devices[];
 extern uint16_t            i40e_supported_devices_size;
 extern supported_devices_t ice_supported_devices[];
 extern uint16_t            ice_supported_devices_size;
+extern uint32_t            unsupported_i40e_device_ids[];
+extern uint32_t            unsupported_i40e_array_size;
 
 ddp_output_function_t ddp_func_print_adapter_list = generate_table;
 
@@ -141,7 +143,7 @@ is_virtual_function(adapter_t* adapter)
  * Returns: TRUE if device is supported and FALSE if it is not.
  */
 bool
-is_supported_device(adapter_t* adapter)
+is_supported_table(adapter_t* adapter)
 {
     supported_devices_t* supported_devices      = NULL;
     adapter_family_t     adapter_family         = family_none;
@@ -167,6 +169,7 @@ is_supported_device(adapter_t* adapter)
             supported_devices_size = ice_supported_devices_size;
             break;
         case family_none:
+            /* fall-through */
         case family_last:
             /* fall-through */
         default:
@@ -218,6 +221,125 @@ is_supported_device(adapter_t* adapter)
     return is_supported;
 }
 
+/* Function verifies if there is a supported driver attached to that specific device.
+ * ice - all devices support ddp profiles.
+ * i40e - Fortville with appropriate FW support ddp profiles (FW check required).
+ * i40e - non-supported i40e devices are filtered using a device id list
+ */
+bool
+is_supported_driver(adapter_t* adapter)
+{
+    char             path_to_pci_device[DDP_MAX_BUFFER_SIZE];
+    char             driver_name[DDP_MAX_NAME_LENGTH];
+    struct stat      node_attributes                         = {0};
+    adapter_family_t adapter_family                          = family_none;
+    uint32_t         i                                       = 0;
+    bool             unsupported_device                      = FALSE;
+    bool             is_supported                            = FALSE;
+
+    memset(path_to_pci_device, '\0',DDP_MAX_BUFFER_SIZE);
+    memset(driver_name, '\0',DDP_MAX_NAME_LENGTH);
+
+    do
+    {
+        for(i = 0; i < unsupported_i40e_array_size; i++)
+        {
+            if(adapter->device_id == unsupported_i40e_device_ids[i])
+            {
+                debug_ddp_print("Unsupported i40e device found.\n");
+                unsupported_device = TRUE;
+                break;
+            }
+        }
+        if(unsupported_device == TRUE)
+        {
+            break;
+        }
+
+        for(++adapter_family; adapter_family < family_last; adapter_family++)
+        {
+            switch(adapter_family)
+            {
+            case family_40G:
+                strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_40G, strlen(DDP_DRIVER_NAME_40G));
+                break;
+            case family_100G:
+                strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G, strlen(DDP_DRIVER_NAME_100G));
+                break;
+            case family_none:
+                /* fall-through */
+            case family_last:
+                /* fall-through */
+            default:
+                memset(driver_name, '\0', sizeof(char)*DDP_MAX_NAME_LENGTH);
+                break;
+            }
+
+            if (adapter_family == family_none || adapter_family == family_last)
+            {
+                break;
+            }
+
+            /* check for symlink to the device file */
+            snprintf(path_to_pci_device,
+                     DDP_MAX_BUFFER_SIZE,
+                     "%s%s/%04x:%02x:%02x.%d/",
+                     PATH_TO_PCI_DRIVERS,
+                     driver_name,
+                     adapter->location.segment,
+                     adapter->location.bus,
+                     adapter->location.device,
+                     adapter->location.function);
+
+            /* use stat() instead of lstat() to follow the symlink from ../drivers into ../devices */
+            stat(path_to_pci_device, &node_attributes);
+
+            if (S_ISDIR(node_attributes.st_mode) == TRUE)
+            {
+                adapter->adapter_family = adapter_family;
+                is_supported = TRUE;
+                break;
+            }
+            else
+            {
+                continue;
+            }
+        }
+    } while(0);
+
+    return is_supported;
+}
+
+bool
+is_device_supported(adapter_t* adapter)
+{
+    ddp_status_t func_status  = DDP_SUCCESS;
+    match_level  match_level  = no_match;
+    bool         is_supported = FALSE;
+
+    do
+    {
+        is_supported = is_supported_table(adapter);
+        if(is_supported == TRUE)
+        {
+            break;
+        }
+
+        is_supported = is_supported_driver(adapter);
+        if(is_supported == TRUE)
+        {
+            func_status = get_branding_string_via_pci_ids(adapter, &match_level);
+            if(func_status != DDP_SUCCESS)
+            {
+                debug_ddp_print("Error: %d when collecting branding string from pci.ids.\n",func_status);
+            }
+        }
+    } while(0);
+
+    return is_supported;
+}
+
+
 ddp_status_t
 get_connection_name(adapter_t* adapter)
 {
@@ -229,7 +351,8 @@ get_connection_name(adapter_t* adapter)
     /* Set default value */
     strcpy_sec(adapter->connection_name,
                sizeof adapter->connection_name,
-               DDP_CONNECTION_NAME_NOT_AVAILABLE);
+               DDP_CONNECTION_NAME_NOT_AVAILABLE,
+               strlen(DDP_CONNECTION_NAME_NOT_AVAILABLE));
 
     snprintf(path_to_net_names,
              sizeof(path_to_net_names),
@@ -251,7 +374,8 @@ get_connection_name(adapter_t* adapter)
 
         strcpy_sec(adapter->connection_name,
                    sizeof adapter->connection_name,
-                   entry->d_name);
+                   entry->d_name,
+                   strlen(entry->d_name));
         status = DDP_SUCCESS;
         break;
     }
@@ -288,11 +412,17 @@ get_data_by_basedriver(adapter_t* adapter, ioctl_structure_t* ioctl_structure)
            adapter->is_usable == TRUE)
         {
             /* for virtual functions we need a connection name from PF */
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->pf_connection_name);
+            strcpy_sec(ifreq.ifr_name,
+                       sizeof ifreq.ifr_name,
+                       adapter->pf_connection_name,
+                       strlen(adapter->pf_connection_name));
         }
         else
         {
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->connection_name);
+            strcpy_sec(ifreq.ifr_name,
+                       sizeof ifreq.ifr_name,
+                       adapter->connection_name,
+                       strlen(adapter->connection_name));
         }
 
         ifreq.ifr_data = (void *) ioctl_structure;
@@ -433,12 +563,12 @@ write_register(adapter_t* adapter, uint32_t reg_address, uint32_t byte_number, v
         if(adapter->is_virtual_function == TRUE && adapter->is_usable == TRUE)
         {
             ioctl_data->config = adapter->pf_device_id << 16 | IOCTL_REGISTER_ACCESS_COMMAND;
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->pf_connection_name);
+            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->pf_connection_name, strlen(adapter->pf_connection_name));
         }
         else
         {
             ioctl_data->config = adapter->device_id << 16 | IOCTL_REGISTER_ACCESS_COMMAND;
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->connection_name);
+            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->connection_name, strlen(adapter->connection_name));
         }
 
         debug_print_ioctl(ioctl_data);
@@ -506,12 +636,12 @@ read_register(adapter_t* adapter, uint32_t reg_address, uint32_t byte_number, vo
         if(adapter->is_virtual_function == TRUE && adapter->is_usable == TRUE)
         {
             ioctl_data->config = adapter->pf_device_id << 16 | IOCTL_REGISTER_ACCESS_COMMAND;
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->pf_connection_name);
+            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->pf_connection_name, strlen(adapter->pf_connection_name));
         }
         else
         {
             ioctl_data->config = adapter->device_id << 16 | IOCTL_REGISTER_ACCESS_COMMAND;
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->connection_name);
+            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->connection_name, strlen(adapter->connection_name));
         }
 
         /* send ioctl call */
@@ -565,11 +695,11 @@ get_driver_info(adapter_t* adapter, driver_info_t* driver_info)
            adapter->is_usable == TRUE)
         {
             /* for virtual functions we need a connection name from PF */
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->pf_connection_name);
+            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->pf_connection_name, strlen(adapter->pf_connection_name));
         }
         else
         {
-            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->connection_name);
+            strcpy_sec(ifreq.ifr_name, sizeof ifreq.ifr_name, adapter->connection_name, strlen(adapter->connection_name));
         }
 
 
@@ -896,7 +1026,7 @@ generate_adapter_list(list_t* adapter_list, char* interface_key)
                 continue;
             }
 
-            if(is_supported_device(&current_device) == FALSE)
+            if(is_device_supported(&current_device) == FALSE)
             {
                 continue;
             }
@@ -948,7 +1078,8 @@ generate_adapter_list(list_t* adapter_list, char* interface_key)
                 {
                     strcpy_sec(current_device.pf_connection_name,
                                sizeof(current_device.pf_connection_name),
-                               last_physical_device.connection_name); /* need for getting data by base driver */
+                               last_physical_device.connection_name,
+                               strlen(last_physical_device.connection_name)); /* need for getting data by base driver */
                     memcpy_sec(&current_device.pf_location,
                                sizeof(current_device.pf_location),
                                &last_physical_device.location,
@@ -1053,6 +1184,25 @@ generate_adapter_list(list_t* adapter_list, char* interface_key)
     return status;
 }
 
+void
+free_ddp_adapter_list_allocated_fields(list_t* adapter_list)
+{
+    node_t*    node        = get_node(adapter_list);
+    node_t*    next_node   = NULL;
+    adapter_t* ddp_adapter = NULL;
+
+    while(node != NULL)
+    {
+        next_node = node->next_node;
+        ddp_adapter = get_adapter_from_list_node(node);
+        if(ddp_adapter->branding_string_allocated == TRUE)
+        {
+            free_memory(ddp_adapter->branding_string);
+        }
+        node = next_node;
+    }
+}
+
 int
 main(int argc, char** argv)
 {
@@ -1133,6 +1283,7 @@ main(int argc, char** argv)
         status = function_status;
     }
 
+    free_ddp_adapter_list_allocated_fields(&adapter_list);
     free_list(&adapter_list);
 
     return status;

@@ -195,6 +195,7 @@ struct _adapter_t{
     uint16_t           subvendor_id;
     uint16_t           subdevice_id;
     char*              branding_string;
+    bool               branding_string_allocated;
     device_location_t  location;
     device_location_t  pf_location;
     char               connection_name[16];    /* the connection name presented in the OS, like eth0 */
@@ -230,6 +231,22 @@ typedef enum _adapter_parameter_t{
     adapter_location,
     adapter_interface
 } adapter_parameter_t;
+
+/* match levels for collecting branding strings from pci.ids
+ * 0 - no match
+ * 1 - vendor id matched
+ * 2 - 1 & device id matched (2-part ID match)
+ * 3 - not used
+ * 4 - 3 & subdevice id matched (4-part ID match)
+ *
+ * also acts as a \t offset value
+ */
+typedef enum _match_level{
+    no_match           = 0,
+    vendor_id_match    = 1,
+    device_id_match    = 2,
+    four_part_id_match = 4
+} match_level;
 
 /* Types defining specific function pointers for generating output*/
 typedef ddp_status_t (*ddp_output_function_t)(list_t*, ddp_status_value_t, char*);

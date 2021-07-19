@@ -41,43 +41,47 @@ supported_devices_t ice_supported_devices[] =
         /* Vendor Device SubVen SubDev Branding String */
         /*---------------------------------------------*/
         /* E810 */
-        {0x8086, 0x10A6, 0xFFFF, 0xFFFF, "Intel(R} E810-C Multi-Function Network Device"},
-        {0x8086, 0x1590, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-C"},
-        {0x8086, 0x1591, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-C for backplane"},
-        {0x8086, 0x1592, 0x8086, 0x0001, "Intel(R} Ethernet Network Adapter E810-C-Q1"},
-        {0x8086, 0x1592, 0x8086, 0x0002, "Intel(R} Ethernet Network Adapter E810-C-Q2"},
-        {0x8086, 0x1592, 0x8086, 0x0005, "Intel(R} Ethernet Network Adapter E810-C-Q1 for OCP3.0"},
-        {0x8086, 0x1592, 0x8086, 0x0006, "Intel(R} Ethernet Network Adapter E810-C-Q2 for OCP3.0"},
+        {0x8086, 0x10A6, 0xFFFF, 0xFFFF, "Intel(R) E810-C Multi-Function Network Device"},
+        {0x8086, 0x1590, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-C"},
+        {0x8086, 0x1591, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-C for backplane"},
+        {0x8086, 0x1592, 0x8086, 0x0001, "Intel(R) Ethernet Network Adapter E810-C-Q1"},
+        {0x8086, 0x1592, 0x8086, 0x0002, "Intel(R) Ethernet Network Adapter E810-C-Q2"},
+        {0x8086, 0x1592, 0x8086, 0x0005, "Intel(R) Ethernet Network Adapter E810-C-Q1 for OCP3.0"},
+        {0x8086, 0x1592, 0x8086, 0x0006, "Intel(R) Ethernet Network Adapter E810-C-Q2 for OCP3.0"},
         {0x8086, 0x1592, 0x8086, 0x000D, "Intel(R) Ethernet Network Adapter E810-L-Q2 for OCP 3.0"},
-        {0x8086, 0x1592, 0x8086, 0x0009, "Intel(R} Ethernet Network Adapter E810-C-Q1"},
-        {0x8086, 0x1592, 0x8086, 0x000A, "Intel(R} Ethernet Network Adapter E810-C-Q1 for OCP"},
+        {0x8086, 0x1592, 0x8086, 0x0009, "Intel(R) Ethernet Network Adapter E810-C-Q1"},
+        {0x8086, 0x1592, 0x8086, 0x000A, "Intel(R) Ethernet Network Adapter E810-C-Q1 for OCP"},
         {0x8086, 0x1592, 0x8086, 0x000E, "Intel(R) Ethernet Network Adapter E810-2C-Q2"},
-        {0x8086, 0x1592, 0x1137, 0x02BF, "Cisco(R} E810CQDA2 2x100 GbE QSFP28 PCIe NIC"},
-        {0x8086, 0x1593, 0x1137, 0x02C3, "Cisco(R} E810XXVDA4 4x25/10 GbE SFP28 PCIe NIC"},
-        {0x8086, 0x159B, 0x1137, 0x02BE, "Cisco(R} E810XXVDA2 2x25/10 GbE SFP28 PCIe NIC"},
-        {0x8086, 0x1593, 0x1028, 0x09D4, "Intel(R} Ethernet Controller E810-C for SFP"},
-        {0x8086, 0x1593, 0x1028, 0x09D5, "Intel(R} Ethernet Controller E810-C for SFP"},
+        {0x8086, 0x1592, 0x1137, 0x02BF, "Cisco(R) E810CQDA2 2x100 GbE QSFP28 PCIe NIC"},
+        {0x8086, 0x1593, 0x1137, 0x02C3, "Cisco(R) E810XXVDA4 4x25/10 GbE SFP28 PCIe NIC"},
+        {0x8086, 0x159B, 0x1137, 0x02BE, "Cisco(R) E810XXVDA2 2x25/10 GbE SFP28 PCIe NIC"},
+        {0x8086, 0x1593, 0x1028, 0x09D4, "Intel(R) Ethernet Controller E810-C for SFP"},
+        {0x8086, 0x1593, 0x1028, 0x09D5, "Intel(R) Ethernet Controller E810-C for SFP"},
         {0x8086, 0x1592, 0x1590, 0x0324, "HPE Synergy 7610C 50/100Gb Ethernet Adapter"},
-        {0x8086, 0x1593, 0x8086, 0x0001, "Intel(R} Ethernet Network Adapter E810-L-1"},
-        {0x8086, 0x1593, 0x8086, 0x0005, "Intel(R} Ethernet Network Adapter E810-XXV-4"},
-        {0x8086, 0x1593, 0x8086, 0x0007, "Intel(R} Ethernet Network Adapter E810-XXV-4"},
-        {0x8086, 0x1593, 0x8086, 0x0009, "Intel(R} Ethernet Network Adapter E810-XXV-2 for OCP 2.0"},
-        {0x8086, 0x1592, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-C for QSFP"},
-        {0x8086, 0x1593, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-C for SFP"},
-        {0x8086, 0x1598, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-XXV"},
-        {0x8086, 0x1599, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-XXV for backplane"},
-        {0x8086, 0x159A, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-XXV for QSFP"},
-        {0x8086, 0x159B, 0x8086, 0x0001, "Intel(R} Ethernet 25G 2P E810-XXV OCP"},
-        {0x8086, 0x159B, 0x8086, 0x0002, "Intel(R} Ethernet 25G 2P E810-XXV Adapter"},
-        {0x8086, 0x159B, 0x8086, 0x0003, "Intel(R} Ethernet Network Adapter E810-XXV-2"},
-        {0x8086, 0x159B, 0x8086, 0x0004, "Intel(R} Ethernet Network Adapter E810-XXV-2"},
-        {0x8086, 0x159B, 0x8086, 0x0005, "Intel(R} Ethernet Network Adapter E810-XXV-2 for OCP 3.0"},
-        {0x8086, 0x159B, 0x8086, 0x0006, "Intel(R} Ethernet Network Adapter E810-XXV-2 for OCP 3.0"},
-        {0x8086, 0x159B, 0x8086, 0x4001, "Intel(R} Ethernet Network Adapter E810-XXV-2"},
-        {0x8086, 0x159B, 0x8086, 0x4002, "Intel(R} Ethernet Network Adapter E810-XXV-2 for OCP 3.0"},
-        {0x8086, 0x159B, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-XXV for SFP"},
-        {0x8086, 0x159C, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-XXV/X557-AT 10GBASE-T"},
-        {0x8086, 0x159D, 0xFFFF, 0xFFFF, "Intel(R} Ethernet Controller E810-XXV 1GbE"},
+        {0x8086, 0x1593, 0x8086, 0x0001, "Intel(R) Ethernet Network Adapter E810-L-1"},
+        {0x8086, 0x1593, 0x8086, 0x0005, "Intel(R) Ethernet Network Adapter E810-XXV-4"},
+        {0x8086, 0x1593, 0x8086, 0x0007, "Intel(R) Ethernet Network Adapter E810-XXV-4"},
+        {0x8086, 0x1593, 0x8086, 0x0009, "Intel(R) Ethernet Network Adapter E810-XXV-2 for OCP 2.0"},
+        {0x8086, 0x1593, 0x8086, 0x000C, "Intel(R) Ethernet Network Adapter E810-XXV-4 for OCP 3.0"},
+        {0x8086, 0x1593, 0x8086, 0x000D, "Intel(R) Ethernet 25G 4P E810-XXV OCP"},
+        {0x8086, 0x1593, 0x8086, 0x000E, "Intel(R) Ethernet Network Adapter E810-XXV-4T"},
+        {0x8086, 0x1592, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-C for QSFP"},
+        {0x8086, 0x1593, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-C for SFP"},
+        {0x8086, 0x1598, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-XXV"},
+        {0x8086, 0x1599, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-XXV for backplane"},
+        {0x8086, 0x159A, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-XXV for QSFP"},
+        {0x8086, 0x159B, 0x8086, 0x0001, "Intel(R) Ethernet 25G 2P E810-XXV OCP"},
+        {0x8086, 0x159B, 0x8086, 0x0002, "Intel(R) Ethernet 25G 2P E810-XXV Adapter"},
+        {0x8086, 0x159B, 0x8086, 0x0003, "Intel(R) Ethernet Network Adapter E810-XXV-2"},
+        {0x8086, 0x159B, 0x8086, 0x0004, "Intel(R) Ethernet Network Adapter E810-XXV-2"},
+        {0x8086, 0x159B, 0x8086, 0x0005, "Intel(R) Ethernet Network Adapter E810-XXV-2 for OCP 3.0"},
+        {0x8086, 0x159B, 0x8086, 0x0006, "Intel(R) Ethernet Network Adapter E810-XXV-2 for OCP 3.0"},
+        {0x8086, 0x159B, 0x8086, 0x4001, "Intel(R) Ethernet Network Adapter E810-XXV-2"},
+        {0x8086, 0x159B, 0x8086, 0x4002, "Intel(R) Ethernet Network Adapter E810-XXV-2 for OCP 3.0"},
+        {0x8086, 0x159B, 0x8086, 0x4003, "Intel(R) Ethernet Network Adapter E810-XXV-2"},
+        {0x8086, 0x159B, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-XXV for SFP"},
+        {0x8086, 0x159C, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-XXV/X557-AT 10GBASE-T"},
+        {0x8086, 0x159D, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Controller E810-XXV 1GbE"},
         /* Adaptive VF */
         {0x8086, 0x1889, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Adaptive Virtual Function"},
         /* E822 */
@@ -607,7 +611,7 @@ _ice_get_adapter_descriptor(adapter_t* adapter, ddp_descriptor_t* dscr)
                                           adapter->pf_location.bus,
                                           adapter->pf_location.device,
                                           adapter->pf_location.function,
-                                          QDL_ZERO_INIT);
+                                          QDL_INIT_NVM);
         }
         else
         {
@@ -615,7 +619,7 @@ _ice_get_adapter_descriptor(adapter_t* adapter, ddp_descriptor_t* dscr)
                                           adapter->location.bus,
                                           adapter->location.device,
                                           adapter->location.function,
-                                          QDL_ZERO_INIT);
+                                          QDL_INIT_NVM);
         }
 
         if(qdl_descriptor != NULL)
@@ -684,13 +688,19 @@ _ice_discovery_device(adapter_t* adapter)
             if(is_fw_supported == FALSE)
             {
                 status = DDP_NO_SUPPORTED_ADAPTER;
-                strcpy_sec(adapter->profile_info.name, DDP_PROFILE_NAME_LENGTH, "Unsupported FW version");
+                strcpy_sec(adapter->profile_info.name,
+                           DDP_PROFILE_NAME_LENGTH,
+                           UNSUPPORTED_FW,
+                           strlen(UNSUPPORTED_FW));
                 break;
             }
             status = _ice_get_adminq_ddp_profile_list(adapter, &descriptor);
             if(status == DDP_NO_DDP_PROFILE)
             {
-                strcpy_sec(adapter->profile_info.name, DDP_PROFILE_NAME_LENGTH, "No profile loaded");
+                strcpy_sec(adapter->profile_info.name,
+                           DDP_PROFILE_NAME_LENGTH,
+                           NO_PROFILE,
+                           strlen(NO_PROFILE));
             }
         }
         else /* descriptor_devlink */
@@ -703,7 +713,10 @@ _ice_discovery_device(adapter_t* adapter)
        status != DDP_NO_DDP_PROFILE        &&
        status != DDP_NO_SUPPORTED_ADAPTER)
     {
-        strcpy_sec(adapter->profile_info.name, DDP_PROFILE_NAME_LENGTH, "-");
+        strcpy_sec(adapter->profile_info.name,
+                   DDP_PROFILE_NAME_LENGTH,
+                   EMPTY_MESSAGE,
+                   strlen(EMPTY_MESSAGE));
     }
 
     ice_release_descriptor(&descriptor);

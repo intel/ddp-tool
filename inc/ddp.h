@@ -45,6 +45,7 @@
 #include <errno.h>
 #include <ctype.h>
 #include <linux/types.h>
+#include <sys/stat.h>
 
 #define upper_16_bits(x) ((uint16_t)((x) >> 16))
 #define lower_16_bits(x) ((uint16_t)(x))
@@ -62,7 +63,8 @@
 
 #include <unistd.h>
 
-#define PATH_TO_SYSFS_PCI "/sys/bus/pci/devices/"
+#define PATH_TO_SYSFS_PCI   "/sys/bus/pci/devices/"
+#define PATH_TO_PCI_DRIVERS "/sys/bus/pci/drivers/"
 
 #define ETHTOOL_GDRVINFO 0x00000003
 #define ETHTOOL_IOCTL    0x8946
@@ -82,8 +84,17 @@
 
 typedef struct ifreq ifreq_t;
 
+#define DDP_DRIVER_NAME_40G               "i40e"
+#define DDP_DRIVER_NAME_100G              "ice"
+
+/* String buffer values */
 #define MAX_DRIVER_VERSION_STRING_LENTGH  32
 #define NUMBER_OF_DRIVER_VERSION_PARTS    3
+
+#define DDP_MAX_BUFFER_SIZE               1024
+#define DDP_MAX_NAME_LENGTH               128
+#define DDP_MAX_BRANDING_SIZE             2048
+#define DDP_ID_BUFFER_SIZE                5     /* 4-part ID (4 chars) + null terminator */
 
 #define PCI_DEVICE_CONFIG_DWORDS          16
 
@@ -98,10 +109,10 @@ typedef struct ifreq ifreq_t;
 #define IOCTL_EXECUTE_COMMAND             0xF << 8
 #define IOCTL_REGISTER_ACCESS_COMMAND     0x0100
 
-#define DDP_MAJOR_VERSION                   1
-#define DDP_MINOR_VERSION                   0
-#define DDP_BUILD_VERSION                   1
-#define DDP_FIX_VERSION                     12
+#define DDP_MAJOR_VERSION                   2020
+#define DDP_MINOR_VERSION                   17
+#define DDP_BUILD_VERSION                   22
+#define DDP_FIX_VERSION                     7
 
 #define DDP_MIN_BASE_DRIVER_VERSION_MAJOR 2
 #define DDP_MIN_BASE_DRIVER_VERSION_MINOR 7
@@ -131,11 +142,16 @@ typedef struct ifreq ifreq_t;
 #define COMPARE_PCI_LOCATION(a, b) ((a)->location.segment) == ((b)->location.segment) ? \
                                     ((a)->location.bus) == ((b)->location.bus) ? TRUE : FALSE : FALSE
 
+/* Messages dictionary */
+#define EMPTY_MESSAGE  "-"
+#define NO_PROFILE     "No profile loaded"
+#define UNSUPPORTED_FW "Unsupported FW version"
+
 void
 free_memory(void* pointer);
 
 bool
-is_supported_device(adapter_t* adapter);
+is_device_supported(adapter_t* adapter);
 
 ddp_status_t
 get_nvm_version(adapter_t* adapter, nvm_version_t* nvm_version);
@@ -155,5 +171,7 @@ write_register(adapter_t* adapter, uint32_t reg_address, uint32_t byte_number, v
 ddp_status_t
 read_register(adapter_t* adapter, uint32_t reg_address, uint32_t byte_number, void* output_register);
 
+void
+free_ddp_adapter_list_allocated_fields(list_t* adapter_list);
 
 #endif

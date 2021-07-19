@@ -35,13 +35,16 @@
 #include "ddp.h"
 
 char*
-strcat_sec(char* dest, uint32_t dest_from, uint32_t dest_size, const char* src, uint32_t chars_to_cpy);
+strcat_sec(char* dest, uint32_t dest_size, const char* src, uint32_t chars_to_copy);
 
 ddp_status_t
 memcpy_sec(void* destination, uint32_t destination_size, void* source, uint32_t source_size);
 
 ddp_status_t
-strcpy_sec(char* destination, uint32_t destination_size, char* source);
+strcpy_sec(char* destination, uint32_t destination_size, const char* source, uint32_t chars_to_copy);
+
+char*
+extended_strcpy_sec(char* dest, uint32_t dest_from, uint32_t dest_size, const char* src, uint32_t chars_to_copy);
 
 void*
 malloc_sec(size_t size);
@@ -57,5 +60,11 @@ get_data_from_sysfs_config(adapter_t * adapter);
 
 ddp_status_t
 get_driver_version_from_os(driver_os_version_t* driver_version, char* version_file_path);
+
+ddp_status_t
+get_branding_string_via_pci_ids(adapter_t* ddp_adapter, match_level* match_level);
+
+char*
+replace_character(char* buffer, char find, char replace);
 
 #endif
