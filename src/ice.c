@@ -61,7 +61,6 @@ supported_devices_t ice_supported_devices[] =
         {0x8086, 0x1593, 0x8086, 0x0001, "Intel(R) Ethernet Network Adapter E810-L-1"},
         {0x8086, 0x1593, 0x8086, 0x0005, "Intel(R) Ethernet Network Adapter E810-XXV-4"},
         {0x8086, 0x1593, 0x8086, 0x0007, "Intel(R) Ethernet Network Adapter E810-XXV-4"},
-        {0x8086, 0x1593, 0x8086, 0x0009, "Intel(R) Ethernet Network Adapter E810-XXV-2 for OCP 2.0"},
         {0x8086, 0x1593, 0x8086, 0x000C, "Intel(R) Ethernet Network Adapter E810-XXV-4 for OCP 3.0"},
         {0x8086, 0x1593, 0x8086, 0x000D, "Intel(R) Ethernet 25G 4P E810-XXV OCP"},
         {0x8086, 0x1593, 0x8086, 0x000E, "Intel(R) Ethernet Network Adapter E810-XXV-4T"},
@@ -413,28 +412,18 @@ _ice_check_fw_version(adapter_t* adapter, bool* is_fw_supported, ddp_descriptor_
                         get_version->fw_patch,
                         get_version->fw_build);
 
-        if(get_version->fw_branch > ICE_MIN_FW_VERSION_BRANCH)
+        if(get_version->fw_major > ICE_MIN_FW_VERSION_MAJOR)
         {
             *is_fw_supported = TRUE;
         }
-
-        if(get_version->fw_branch == ICE_MIN_FW_VERSION_BRANCH &&
-           get_version->fw_major  >  ICE_MIN_FW_VERSION_MAJOR)
+        else if(get_version->fw_major == ICE_MIN_FW_VERSION_MAJOR  &&
+                get_version->fw_minor >  ICE_MIN_FW_VERSION_MINOR)
         {
             *is_fw_supported = TRUE;
         }
-
-        if(get_version->fw_branch == ICE_MIN_FW_VERSION_BRANCH &&
-           get_version->fw_major  == ICE_MIN_FW_VERSION_MAJOR  &&
-           get_version->fw_minor  >  ICE_MIN_FW_VERSION_MINOR)
-        {
-            *is_fw_supported = TRUE;
-        }
-
-        if(get_version->fw_branch == ICE_MIN_FW_VERSION_BRANCH &&
-           get_version->fw_major  == ICE_MIN_FW_VERSION_MAJOR  &&
-           get_version->fw_minor  == ICE_MIN_FW_VERSION_MINOR  &&
-           get_version->fw_patch  >= ICE_MIN_FW_VERSION_PATCH)
+        else if(get_version->fw_major == ICE_MIN_FW_VERSION_MAJOR  &&
+                get_version->fw_minor == ICE_MIN_FW_VERSION_MINOR  &&
+                get_version->fw_patch >= ICE_MIN_FW_VERSION_PATCH)
         {
             *is_fw_supported = TRUE;
         }

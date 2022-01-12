@@ -139,11 +139,12 @@ is_virtual_function(adapter_t* adapter)
  *
  * Parameters:
  * [in,out] adapter      Handle to current adapter
+ * [out]    match_level  4 if 4-PartId match, 2 if 2-PartId match, 0 if no match
  *
  * Returns: TRUE if device is supported and FALSE if it is not.
  */
 bool
-is_supported_table(adapter_t* adapter)
+is_supported_table(adapter_t* adapter, match_level* match_level)
 {
     supported_devices_t* supported_devices      = NULL;
     adapter_family_t     adapter_family         = family_none;
@@ -188,16 +189,34 @@ is_supported_table(adapter_t* adapter)
                    a_sub_dev_id == supported_devices[i].subdeviceid
                   )
                 {
+                    if(adapter->branding_string_allocated == TRUE)
+                    {
+                        free_memory(adapter->branding_string);
+                        adapter->branding_string_allocated = FALSE;
+                    }
                     adapter->branding_string = supported_devices[i].branding_string;
                     is_supported = TRUE;
                     adapter->adapter_family = adapter_family;
+                    *match_level = four_part_id_match;
                     break;
                 }
             }
-            if((a_sub_dev_id & a_sub_ven_id) == generic_id ||
-               is_supported == TRUE)
+            /* if tool doesn't find match for generic sub_ven & sub_dev the loop shall be broken */
+            if(((a_sub_ven_id & a_sub_dev_id) == generic_id) && (is_supported == FALSE))
             {
-                /* 2-partID matching failed or we've found a match*/
+                break;
+            }
+            if(is_supported == TRUE)
+            {
+                if((a_sub_dev_id & a_sub_ven_id) == generic_id) /* 2-partID match */
+                {
+                    *match_level = device_id_match;
+                }
+                else /* 4-partID match */
+                {
+                    *match_level = four_part_id_match;
+                }
+
                 break;
             }
             else
@@ -310,6 +329,15 @@ is_supported_driver(adapter_t* adapter)
     return is_supported;
 }
 
+/* Function verifies if adapter is supported. Function checks if device is connected to the supported driver and tries
+ * to match adapter with the branding string from pci.ids table. If driver is not supported or branding string was selected based on
+ * two-partId match, the function tries to match device with hardcoded device table to select branding string.
+ *
+ * Parameters:
+ * [in,out] adapter      Handle to current adapter
+  *
+ * Returns: TRUE if device is supported and FALSE if it is not.
+ */
 bool
 is_device_supported(adapter_t* adapter)
 {
@@ -319,19 +347,26 @@ is_device_supported(adapter_t* adapter)
 
     do
     {
-        is_supported = is_supported_table(adapter);
-        if(is_supported == TRUE)
-        {
-            break;
-        }
-
         is_supported = is_supported_driver(adapter);
         if(is_supported == TRUE)
         {
             func_status = get_branding_string_via_pci_ids(adapter, &match_level);
+            if(func_status == DDP_SUCCESS && match_level == four_part_id_match)
+            {
+                debug_ddp_print("Device found in external file.\n");
+                break;
+            }
+            if(func_status == DDP_SUCCESS && match_level == device_id_match)
+            {
+                debug_ddp_print("Two part id match in external file. Tool will try to match with internal table\n");
+            }
             if(func_status != DDP_SUCCESS)
             {
-                debug_ddp_print("Error: %d when collecting branding string from pci.ids.\n",func_status);
+                debug_ddp_print("Error: %d when collecting branding string from pci.ids.\n", func_status);
+            }
+            if(match_level < four_part_id_match)
+            {
+                is_supported = is_supported_table(adapter, &match_level);
             }
         }
     } while(0);

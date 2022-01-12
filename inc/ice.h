@@ -35,7 +35,6 @@
 #include "ddp_types.h"
 #include "ddp.h"
 
-#define ICE_MIN_FW_VERSION_BRANCH        1
 #define ICE_MIN_FW_VERSION_MAJOR         5
 #define ICE_MIN_FW_VERSION_MINOR         2
 #define ICE_MIN_FW_VERSION_PATCH         1

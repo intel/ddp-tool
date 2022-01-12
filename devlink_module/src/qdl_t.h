@@ -1,16 +1,23 @@
 /*************************************************************************************************************
  *
- * INTEL CONFIDENTIAL
+ * Copyright (C) 2020 - 2021, Intel Corporation All rights reserved.
  *
- * Copyright 2020 - 2021 Intel Corporation.
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided
+ * that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list of conditions and
+ * the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and
+ * the following disclaimer in the documentation and/or other materials provided with the distribution.
+ * Neither the name of the <organization> nor the names of its contributors may be used to endorse or promote
+ * products derived from this software without specific prior written permission.
  *
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed
- * by the express license under which they were provided to you ("License"). Unless the License provides
- * otherwise, you may not use, modify, copy, publish, distribute, disclose or transmit this software or the
- * related documents without Intel's prior written permission.
- *
- * This software and the related documents are provided as is, with no express or implied warranties, other
- * than those that are expressly stated in the License.
+ * THIS SOFTWARE IS PROVIDED BY INTEL CORPORATION "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL INTEL CORPORATION BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************************************/
 
@@ -54,7 +61,6 @@ typedef char bool;
 
 #define true   1
 #define false  0
-
 typedef struct {
 	uint16_t vendor_id;
 	uint16_t device_id;
@@ -121,6 +127,8 @@ enum {
 
 	QDL_CMD_PORT_GET = 5,
 
+	QDL_CMD_RELOAD = 37,
+
 	QDL_CMD_PARAM_GET = 38,
 	QDL_CMD_PARAM_SET = 39,
 
@@ -181,6 +189,8 @@ enum {
 
 	QDL_DEVLINK_ATTR_FLASH_UPDATE_FILE_NAME   = 122,  /* string */
 
+	QDL_DEVLINK_ATTR_RELOAD_ACTION            = 153,  /* uint8 */
+
 	QDL_DEVLINK_ATTR_ID_END
 };
 
@@ -205,6 +215,12 @@ typedef enum {
 	QDL_PARAM_CMODE_DRIVERINIT,
 	QDL_PARAM_CMODE_PERMANENT,
 } qdl_param_cmode_t;
+
+typedef enum {
+	QDL_PARAM_RELOAD_ACTION_UNSPEC,
+	QDL_PARAM_RELOAD_ACTION_DRIVER_REINIT,
+	QDL_PARAM_RELOAD_ACTION_FW_ACTIVATE
+} qdl_param_reload_action_t;
 
 /* Additional data for messages */
 typedef struct {

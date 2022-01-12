@@ -1,16 +1,23 @@
 /*************************************************************************************************************
  *
- * INTEL CONFIDENTIAL
+ * Copyright (C) 2020 - 2021, Intel Corporation All rights reserved.
  *
- * Copyright 2020 - 2021 Intel Corporation.
+ * Redistribution and use in source and binary forms, with or without modification, are permitted provided
+ * that the following conditions are met:
+ * Redistributions of source code must retain the above copyright notice, this list of conditions and
+ * the following disclaimer.
+ * Redistributions in binary form must reproduce the above copyright notice, this list of conditions and
+ * the following disclaimer in the documentation and/or other materials provided with the distribution.
+ * Neither the name of the <organization> nor the names of its contributors may be used to endorse or promote
+ * products derived from this software without specific prior written permission.
  *
- * This software and the related documents are Intel copyrighted materials, and your use of them is governed
- * by the express license under which they were provided to you ("License"). Unless the License provides
- * otherwise, you may not use, modify, copy, publish, distribute, disclose or transmit this software or the
- * related documents without Intel's prior written permission.
- *
- * This software and the related documents are provided as is, with no express or implied warranties, other
- * than those that are expressly stated in the License.
+ * THIS SOFTWARE IS PROVIDED BY INTEL CORPORATION "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING,
+ * BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
+ * DISCLAIMED. IN NO EVENT SHALL INTEL CORPORATION BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,
+ * EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF
+ * LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+ * ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
  *
  ************************************************************************************************************/
 
@@ -350,30 +357,14 @@ qdl_status_t _qdl_read_msg_family_id(qdl_dscr_t dscr, uint32_t *family_id)
  */
 qdl_status_t _qdl_is_dev_supported(qdl_dscr_t dscr, bool *support)
 {
-	uint8_t *send_buff = NULL;
 	uint8_t *rec_buff = NULL;
 	uint8_t *msg = NULL;
 	qdl_status_t status = QDL_SUCCESS;
-	unsigned int rec_buff_size = 0;
-	unsigned int send_buff_size = 0;
+	unsigned int rec_buff_size = QDL_REC_BUFF_SIZE;
 
 	QDL_DEBUGLOG_ENTERING;
 
 	/* Get list of supported devices */
-	send_buff = qdl_create_msg(dscr, QDL_CMD_GET, &send_buff_size, NULL);
-	if(send_buff == NULL) {
-		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_create_msg", 0);
-		return QDL_MEMORY_ERROR;
-	}
-
-	status = qdl_send_msg(dscr, send_buff, send_buff_size);
-	free(send_buff);
-	if(status != QDL_SUCCESS) {
-		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_send_msg", status);
-		return status;
-	}
-
-	rec_buff_size = QDL_REC_BUFF_SIZE;
 	rec_buff = malloc(rec_buff_size);
 	if(rec_buff == NULL) {
 		QDL_DEBUGLOG_FUNCTION_FAIL("malloc", status);
@@ -381,19 +372,35 @@ qdl_status_t _qdl_is_dev_supported(qdl_dscr_t dscr, bool *support)
 	}
 	memset(rec_buff, 0, rec_buff_size);
 
-	status = qdl_receive_msg(dscr, rec_buff, &rec_buff_size);
+	status = qdl_receive_reply_msg(dscr, QDL_CMD_GET, NULL, rec_buff, &rec_buff_size);
 	if(status != QDL_SUCCESS) {
-		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_msg", status);
+		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
 		free(rec_buff);
 		return status;
 	}
 
-	/* Parse received message */
+	/* Parse received message. If there're no devlink devices return 'false' for 'support' and ends
+	 * function with success. */
 	*support = false;
 	msg = _qdl_get_next_dev_msg(dscr, rec_buff, rec_buff_size, NULL);
-	if(msg != NULL) {
-		*support = true;
+	if(msg == NULL) {
+		free(rec_buff);
+		return QDL_SUCCESS;
 	}
+
+	/* Verify supported cmds. If cmd is not supported return 'false' for 'support' and ends function
+	 *  with success. */
+	rec_buff_size = QDL_REC_BUFF_SIZE;
+	memset(rec_buff, 0, rec_buff_size);
+	status = qdl_receive_reply_msg(dscr, QDL_CMD_INFO_GET, NULL, rec_buff, &rec_buff_size);
+	if(status != QDL_SUCCESS) {
+		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
+		free(rec_buff);
+		return QDL_SUCCESS;
+	}
+	*support = true;
+
+	/*  Free memory */
 	free(rec_buff);
 
 	return QDL_SUCCESS;
@@ -430,6 +437,7 @@ int _qdl_open_socket(qdl_dscr_t qdl_dscr)
 {
 	qdl_struct *dscr = (qdl_struct*)qdl_dscr;
 	int return_code = 0;
+	int sock_opt = 1;
 	int address_length = sizeof(struct sockaddr_nl);
 
 	/* Get devlink socket */
@@ -455,6 +463,11 @@ int _qdl_open_socket(qdl_dscr_t qdl_dscr)
 	return_code = getsockname(dscr->socket, (struct sockaddr*)&dscr->socket_addr,
 				  (socklen_t*)&address_length);
 	if(return_code == QDL_SOCKET_ERROR) {
+		return QDL_OPEN_SOCKET_ERROR;
+	}
+
+	return_code = setsockopt(dscr->socket, SOL_NETLINK, NETLINK_EXT_ACK, &sock_opt, sizeof(sock_opt));
+	if(return_code) {
 		return QDL_OPEN_SOCKET_ERROR;
 	}
 
@@ -952,6 +965,13 @@ uint8_t* qdl_create_msg(qdl_dscr_t dscr, int cmd_type, unsigned int *msg_size, v
 		_qdl_put_msg_str_attr(msg, QDL_DEVLINK_ATTR_BUS_NAME, "pci");
 		_qdl_put_msg_str_attr(msg, QDL_DEVLINK_ATTR_LOCATION, _qdl_get_bus_name(dscr, bus_name_buff));
 		_qdl_put_msg_str_attr(msg, QDL_DEVLINK_ATTR_PARAM_NAME, (char*)data);
+		break;
+	case QDL_CMD_RELOAD:
+		_qdl_put_msg_header(msg, dscr_data->id, NLM_F_REQUEST | NLM_F_ACK);
+		_qdl_put_msg_extra_header(msg, cmd_type, 1);
+		_qdl_put_msg_str_attr(msg, QDL_DEVLINK_ATTR_BUS_NAME, "pci");
+		_qdl_put_msg_str_attr(msg, QDL_DEVLINK_ATTR_LOCATION, _qdl_get_bus_name(dscr, bus_name_buff));
+		_qdl_put_msg_uint8_attr(msg, QDL_DEVLINK_ATTR_RELOAD_ACTION, QDL_PARAM_RELOAD_ACTION_FW_ACTIVATE);
 		break;
 	case QDL_CMD_PARAM_SET:
 		if(data == NULL) {

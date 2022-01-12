@@ -728,5 +728,3 @@ replace_character(char* buffer, char find, char replace)
     }
     return buffer;
 }
-
-
