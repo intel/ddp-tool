@@ -1,33 +1,27 @@
-/****************************************************************************************
-* Copyright (C) 2020 - 2021 Intel Corporation
-*
-* Redistribution and use in source and binary forms, with or without modification,
-* are permitted provided that the following conditions are met:
-*
-* 1. Redistributions of source code must retain the above copyright notice,
-*    this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright notice,
-*    this list of conditions and the following disclaimer in the documentation
-*    and/or other materials provided with the distribution.
-* 3. Neither the name of the copyright holder nor the names of its contributors
-*    may be used to endorse or promote products derived from this software
-*    without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-* THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
-* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
-* OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-* OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-* EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
-* SPDX-License-Identifier: BSD-3-Clause
-*
-****************************************************************************************/
+/*************************************************************************************************************
+* Copyright (C) 2020 Intel Corporation                                                                       *
+*                                                                                                            *
+* Redistribution and use in source and binary forms, with or without modification, are permitted provided    *
+* that the following conditions are met:                                                                     *
+*                                                                                                            *
+* 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the  *
+*    following disclaimer.                                                                                   *
+* 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and   *
+*      the following disclaimer in the documentation and/or other materials provided with the distribution.  *
+* 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or    *
+*    promote products derived from this software without specific prior written permission.                  *
+*                                                                                                            *
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED     *
+* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A     *
+* PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR   *
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED *
+* TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)  *
+* HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING   *
+* NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE        *
+* POSSIBILITY OF SUCH DAMAGE.                                                                                *
+*                                                                                                            *
+* SPDX-License-Identifier: BSD-3-Clause                                                                      *
+*************************************************************************************************************/
 
 #ifndef _DEF_ICE_H_
 #define _DEF_ICE_H_
@@ -57,6 +51,8 @@
 #define ICE_GL_HICR_STATUS_VALID_BIT     (1 << 2) /* 4 */
 #define ICE_GL_HICR_EVENT_VALID_BIT      (1 << 3) /* 8 */
 
+#define ICE_DESC_COOKIE_L_DWORD_OFFSET   3
+
 #define ICE_AQ_FLAG_BUF                  (1 << 12)  /* 0x1000 */
 #define ICE_AQ_FLAG_SI                   (1 << 13)  /* 0x2000 */
 #define ICE_LOCK_SEMAPHORE_VALUE         0xBABABABA /* Lock semaphore value */
@@ -69,6 +65,14 @@
 /* AdminQ commands */
 #define ICE_ADMINQ_COMMAND_GET_VERSION          0x1
 #define ICE_ADMINQ_COMMAND_GET_DDP_PROFILE_LIST 0x0C43
+
+/* [DCR-3443] Timestamp spacing for Tools AQ: queue is active if spacing is within the range [LO..HI] */
+#define ICE_TOOLSQ_ACTIVE_STAMP_SPACING_LO      0
+#define ICE_TOOLSQ_ACTIVE_STAMP_SPACING_HI      200
+
+/* [DCR-3443] Timestamp spacing for Tools AQ: queue is expired if spacing is outside the range [LO..HI] */
+#define ICE_TOOLSQ_EXPIRED_STAMP_SPACING_LO     -5
+#define ICE_TOOLSQ_EXPIRED_STAMP_SPACING_HI     205
 
 extern driver_os_context_t Global_driver_os_ctx[family_last];
 

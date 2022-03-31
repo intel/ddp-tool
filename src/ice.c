@@ -1,39 +1,34 @@
-/****************************************************************************************
-* Copyright (C) 2020 - 2021 Intel Corporation
-*
-* Redistribution and use in source and binary forms, with or without modification,
-* are permitted provided that the following conditions are met:
-*
-* 1. Redistributions of source code must retain the above copyright notice,
-*    this list of conditions and the following disclaimer.
-* 2. Redistributions in binary form must reproduce the above copyright notice,
-*    this list of conditions and the following disclaimer in the documentation
-*    and/or other materials provided with the distribution.
-* 3. Neither the name of the copyright holder nor the names of its contributors
-*    may be used to endorse or promote products derived from this software
-*    without specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-* AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO,
-* THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-* ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS
-* BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY,
-* OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT
-* OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS;
-* OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY,
-* WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
-* OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE,
-* EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*
-* SPDX-License-Identifier: BSD-3-Clause
-*
-****************************************************************************************/
+/*************************************************************************************************************
+* Copyright (C) 2020 Intel Corporation                                                                       *
+*                                                                                                            *
+* Redistribution and use in source and binary forms, with or without modification, are permitted provided    *
+* that the following conditions are met:                                                                     *
+*                                                                                                            *
+* 1. Redistributions of source code must retain the above copyright notice, this list of conditions and the  *
+*    following disclaimer.                                                                                   *
+* 2. Redistributions in binary form must reproduce the above copyright notice, this list of conditions and   *
+*      the following disclaimer in the documentation and/or other materials provided with the distribution.  *
+* 3. Neither the name of the copyright holder nor the names of its contributors may be used to endorse or    *
+*    promote products derived from this software without specific prior written permission.                  *
+*                                                                                                            *
+* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND ANY EXPRESS OR IMPLIED     *
+* WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A     *
+* PARTICULAR PURPOSE ARE DISCLAIMED.  IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE LIABLE FOR   *
+* ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED *
+* TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)  *
+* HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING   *
+* NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE        *
+* POSSIBILITY OF SUCH DAMAGE.                                                                                *
+*                                                                                                            *
+* SPDX-License-Identifier: BSD-3-Clause                                                                      *
+*************************************************************************************************************/
 
 #include "ice.h"
 #include "ddp.h"
 #include "qdl_i.h"
 #include "qdl_t.h"
 #include "qdl_codes.h"
+#include <time.h>
 
 supported_devices_t ice_supported_devices[] =
 {
@@ -100,7 +95,7 @@ supported_devices_t ice_supported_devices[] =
         {0x8086, 0x189A, 0xFFFF, 0xFFFF, "Intel(R) Ethernet Connection E822-L 1GbE"}
 };
 
-uint16_t ice_supported_devices_size = sizeof(ice_supported_devices)/sizeof(supported_devices_t);
+uint16_t ice_supported_devices_size = sizeof(ice_supported_devices)/sizeof(ice_supported_devices[0]);
 
 bool
 _ice_is_virtual_function(adapter_t* adapter)
@@ -117,6 +112,9 @@ ddp_status_t
 _ice_acquire_adminq(adapter_t* adapter)
 {
     ddp_status_t status                = DDP_SUCCESS;
+    time_t       current_timestamp     = 0;
+    time_t       last_timestamp        = 0;
+    int64_t      timestamp_delta       = 0;
     uint32_t     hicr_en               = 0;
     uint32_t     hicr                  = 0;
     uint32_t     hida                  = 0;
@@ -161,13 +159,33 @@ _ice_acquire_adminq(adapter_t* adapter)
             break;
         }
 
+        current_timestamp = time(NULL);
+
         if(upper_16_bits(hida) != 0xFFFF && upper_16_bits(hida) != 0)
         {
-            debug_ddp_print("csr is busy\n");
-            debug_ddp_print(" hida higer16: 0x%X\n", upper_16_bits(hida));
-            debug_ddp_print(" hida lower16: 0x%X\n", lower_16_bits(hida));
-            status = DDP_CANNOT_COMMUNICATE_ADAPTER;
-            break;
+            /* CSR mechanism is marked as busy, but may have expired due to long inactivity time.
+             * Check if it can be acquired. */
+            status = read_register(adapter,
+                                   GL_HIDA(ICE_DESC_COOKIE_L_DWORD_OFFSET),
+                                   DDP_DWORD_LENGTH,
+                                   &last_timestamp);
+            if(status != DDP_SUCCESS)
+            {
+                status = DDP_CANNOT_COMMUNICATE_ADAPTER;
+                break;
+            }
+
+            timestamp_delta = current_timestamp - last_timestamp;
+            if(last_timestamp == 0 ||
+               (timestamp_delta >= ICE_TOOLSQ_EXPIRED_STAMP_SPACING_LO &&
+                timestamp_delta <= ICE_TOOLSQ_EXPIRED_STAMP_SPACING_HI))
+            {
+                debug_ddp_print("AQ lock failed, it was locked %d seconds ago.\n", timestamp_delta);
+                status = DDP_CANNOT_COMMUNICATE_ADAPTER;
+                break;
+            }
+
+            debug_ddp_print("AQ was locked %d seconds ago, lock is considered timed-out.\n", timestamp_delta);
         }
 
         /* lock adminQ by CSR */
@@ -175,6 +193,16 @@ _ice_acquire_adminq(adapter_t* adapter)
         if(status != DDP_SUCCESS)
         {
             debug_ddp_print("%d - write_register status: 0x%X\n", __LINE__, status);
+            status = DDP_CANNOT_COMMUNICATE_ADAPTER;
+            break;
+        }
+
+        status = write_register(adapter,
+                                GL_HIDA(ICE_DESC_COOKIE_L_DWORD_OFFSET),
+                                DDP_DWORD_LENGTH,
+                                &current_timestamp);
+        if(status != DDP_SUCCESS)
+        {
             status = DDP_CANNOT_COMMUNICATE_ADAPTER;
             break;
         }
@@ -569,7 +597,7 @@ _ice_get_devlink_profile_info(adapter_t* adapter, ddp_descriptor_t* dscr)
                &version->update,
                &version->draft);
 
-        qdl_get_string_by_key(qdl_descriptor, rec_msg, rec_msg_size, "fw.trackid", track_id, DDP_TRACKID_LENGTH);
+        qdl_get_string_by_key(qdl_descriptor, rec_msg, rec_msg_size, "fw.app.bundle_id", track_id, DDP_TRACKID_LENGTH);
 
         sscanf(track_id, "%X", &adapter->profile_info.track_id);
         /* The AdminQ respons include the section size - this value is usefull to correct display the table
