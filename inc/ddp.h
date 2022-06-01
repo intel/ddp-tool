@@ -80,6 +80,8 @@ typedef struct ifreq ifreq_t;
 
 #define DDP_DRIVER_NAME_40G               "i40e"
 #define DDP_DRIVER_NAME_100G              "ice"
+#define DDP_DRIVER_NAME_100G_SW           "ice_sw"
+#define DDP_DRIVER_NAME_100G_SWX          "ice_swx"
 
 /* String buffer values */
 #define MAX_DRIVER_VERSION_STRING_LENTGH  32
@@ -105,8 +107,8 @@ typedef struct ifreq ifreq_t;
 
 #define DDP_MAJOR_VERSION                   1
 #define DDP_MINOR_VERSION                   0
-#define DDP_BUILD_VERSION                   17
-#define DDP_FIX_VERSION                     0
+#define DDP_BUILD_VERSION                   18
+#define DDP_FIX_VERSION                     2
 
 #define DDP_MIN_BASE_DRIVER_VERSION_MAJOR 2
 #define DDP_MIN_BASE_DRIVER_VERSION_MINOR 7

@@ -476,6 +476,7 @@ get_branding_string_via_pci_ids(adapter_t* ddp_adapter, match_level* match_level
 {
     FILE*        file_handle          = NULL;
     const char*  path_to_pci_ids      = "/usr/share/hwdata/pci.ids";
+    char*        driver_string        = NULL;
     ddp_status_t ddp_status           = DDP_SUCCESS;
     uint32_t     vendor_id_string_len = 0;
     uint32_t     candidate_id         = 0;
@@ -677,17 +678,26 @@ get_branding_string_via_pci_ids(adapter_t* ddp_adapter, match_level* match_level
         {
             if(ddp_adapter->adapter_family == family_40G)
             {
-                snprintf(ddp_adapter->branding_string,
-                         DDP_MAX_BRANDING_SIZE,
-                         "Unrecognized device on %04X:%02X:%02X.%d using %s driver",
-                         ddp_adapter->location.segment,
-                         ddp_adapter->location.bus,
-                         ddp_adapter->location.device,
-                         ddp_adapter->location.function,
-                         DDP_DRIVER_NAME_40G);
+                driver_string = DDP_DRIVER_NAME_40G;
                 ddp_status = DDP_MATCH_ERROR;
             }
             if(ddp_adapter->adapter_family == family_100G)
+            {
+                driver_string = DDP_DRIVER_NAME_100G;
+                ddp_status = DDP_MATCH_ERROR;
+            }
+            if(ddp_adapter->adapter_family == family_100G_SW)
+            {
+                driver_string = DDP_DRIVER_NAME_100G_SW;
+                ddp_status = DDP_MATCH_ERROR;
+            }
+            if(ddp_adapter->adapter_family == family_100G_SWX)
+            {
+                driver_string = DDP_DRIVER_NAME_100G_SWX;
+                ddp_status = DDP_MATCH_ERROR;
+            }
+
+            if(ddp_status == DDP_MATCH_ERROR)
             {
                 snprintf(ddp_adapter->branding_string,
                          DDP_MAX_BRANDING_SIZE,
@@ -696,8 +706,7 @@ get_branding_string_via_pci_ids(adapter_t* ddp_adapter, match_level* match_level
                          ddp_adapter->location.bus,
                          ddp_adapter->location.device,
                          ddp_adapter->location.function,
-                         DDP_DRIVER_NAME_100G);
-                ddp_status = DDP_MATCH_ERROR;
+                         driver_string);
             }
             *match_level = 0; /* neither 2 nor 4-part id match found */
         }

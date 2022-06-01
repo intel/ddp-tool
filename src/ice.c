@@ -742,53 +742,109 @@ _ice_discovery_device(adapter_t* adapter)
 }
 
 ddp_status_t
-ice_verify_driver(void)
+_100g_verify_driver(char* driver_name, driver_os_version_t* ice_driver_version)
 {
-    char*                ice_driver_path         = "/sys/bus/pci/drivers/ice";
-    char*                ice_module_version_path = "/sys/module/ice/version";
+    char                 ice_driver_path[DDP_MAX_BUFFER_SIZE];
+    char                 ice_module_version_path[DDP_MAX_BUFFER_SIZE];
     DIR*                 dir                     = NULL;
-    driver_os_version_t* ice_driver_version      = &Global_driver_os_ctx[family_100G].driver_version;
     ddp_status_t         ddp_status              = DDP_SUCCESS;
 
+    memset(ice_driver_path, '\0', sizeof(ice_driver_path));
+    memset(ice_module_version_path, '\0', sizeof(ice_module_version_path));
 
-    Global_driver_os_ctx[family_100G].driver_available = FALSE;
-    Global_driver_os_ctx[family_100G].driver_supported = FALSE;
-
-    /* check if driver is available */
-    ddp_status = get_driver_version_from_os(ice_driver_version, ice_module_version_path);
-    if(ddp_status == DDP_SUCCESS)
+    do
     {
-        Global_driver_os_ctx[family_100G].driver_available = TRUE;
-        Global_driver_os_ctx[family_100G].driver_supported = TRUE;
-        debug_ddp_print("Ice driver version: %d.%d.%d\n",
-                        ice_driver_version->major,
-                        ice_driver_version->minor,
-                        ice_driver_version->build);
-    }
-    else
-    {
-        /* All ICE drivers are supported, so if the driver version is not available just check if driver exists, so
-         * let's check if the directory /sys/bus/pci/drivers/ice exists.
-         */
-        dir = opendir(ice_driver_path);
-        if(dir != NULL)
+        if(driver_name == NULL)
         {
-            Global_driver_os_ctx[family_100G].driver_available = TRUE;
-            Global_driver_os_ctx[family_100G].driver_supported = TRUE;
-            closedir(dir);
-            debug_ddp_print("Ice driver version not available\n");
-            /* the driver extis in the system, the success shall be returned. */
-            ddp_status = DDP_SUCCESS;
+            ddp_status = DDP_INCORRECT_FUNCTION_PARAMETERS;
+            break;
+        }
+
+        snprintf(ice_driver_path, DDP_MAX_BUFFER_SIZE, "/sys/bus/pci/drivers/%s", driver_name);
+        snprintf(ice_module_version_path, DDP_MAX_BUFFER_SIZE, "/sys/module/%s/version", driver_name);
+
+        debug_ddp_print("driver patch: %s\n", ice_driver_path);
+        debug_ddp_print("module version path: %s\n", ice_module_version_path);
+        
+        /* check if driver is available */
+        ddp_status = get_driver_version_from_os(ice_driver_version, ice_module_version_path);
+        if(ddp_status == DDP_SUCCESS)
+        {
+            debug_ddp_print("%s driver version: %d.%d.%d\n",
+                            driver_name,
+                            ice_driver_version->major,
+                            ice_driver_version->minor,
+                            ice_driver_version->build);
         }
         else
         {
-            Global_driver_os_ctx[family_100G].driver_available = FALSE;
-            Global_driver_os_ctx[family_100G].driver_supported = FALSE;
-            debug_ddp_print("Ice driver not available\n");
+            /* All ICE drivers are supported, so if the driver version is not available just check if driver exists, so
+            * let's check if the directory /sys/bus/pci/drivers/ice exists.
+            */
+            dir = opendir(ice_driver_path);
+            if(dir != NULL)
+            {
+                closedir(dir);
+                debug_ddp_print("%s driver version not available\n", driver_name);
+                /* the driver extis in the system, the success shall be returned. */
+                ddp_status = DDP_SUCCESS;
+            }
+            else
+            {
+                debug_ddp_print("%s driver not available\n", driver_name);
+            }
         }
-    }
+    } while(0);
 
     return ddp_status;
+}
+
+ddp_status_t
+ice_verify_driver(void)
+{
+    ddp_status_t         status             = DDP_SUCCESS;
+    driver_os_version_t* ice_driver_version = &Global_driver_os_ctx[family_100G].driver_version;
+
+    status = _100g_verify_driver("ice", ice_driver_version);
+    if(status == DDP_SUCCESS)
+    {
+        Global_driver_os_ctx[family_100G].driver_available = TRUE;
+        Global_driver_os_ctx[family_100G].driver_supported = TRUE;
+    }
+
+    return status;
+}
+
+ddp_status_t
+ice_sw_verify_driver(void)
+{
+    ddp_status_t         status             = DDP_SUCCESS;
+    driver_os_version_t* ice_driver_version = &Global_driver_os_ctx[family_100G_SW].driver_version;
+
+    status = _100g_verify_driver("ice_swx", ice_driver_version);
+    if(status == DDP_SUCCESS)
+    {
+        Global_driver_os_ctx[family_100G_SW].driver_available = TRUE;
+        Global_driver_os_ctx[family_100G_SW].driver_supported = TRUE;
+    }
+
+    return status;
+}
+
+ddp_status_t
+ice_swx_verify_driver(void)
+{
+    ddp_status_t         status             = DDP_SUCCESS;
+    driver_os_version_t* ice_driver_version = &Global_driver_os_ctx[family_100G_SWX].driver_version;
+
+    status = _100g_verify_driver("ice_swx", ice_driver_version);
+    if(status == DDP_SUCCESS)
+    {
+        Global_driver_os_ctx[family_100G_SWX].driver_available = TRUE;
+        Global_driver_os_ctx[family_100G_SWX].driver_supported = TRUE;
+    }
+
+    return status;
 }
 
 void

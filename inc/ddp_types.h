@@ -50,6 +50,8 @@ typedef enum _adapter_family_t{
     family_none = 0,
     family_40G,
     family_100G,
+    family_100G_SW,
+    family_100G_SWX,
     family_last     /* add new entries before this one */
 } adapter_family_t;
 

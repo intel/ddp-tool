@@ -278,6 +278,12 @@ is_supported_driver(adapter_t* adapter)
             case family_100G:
                 strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G, strlen(DDP_DRIVER_NAME_100G));
                 break;
+            case family_100G_SW:
+                strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G_SW, strlen(DDP_DRIVER_NAME_100G_SW));
+                break;
+            case family_100G_SWX:
+                strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G_SWX, strlen(DDP_DRIVER_NAME_100G_SWX));
+                break;
             case family_none:
                 /* fall-through */
             case family_last:
@@ -840,10 +846,26 @@ initialize_tool()
             debug_ddp_print("Cannot find ice base driver!\n");
             ddp_status = DDP_SUCCESS;
         }
+
+        ddp_status = ice_sw_verify_driver();
+        if(ddp_status != DDP_SUCCESS)
+        {
+            debug_ddp_print("Cannot find ice_sw base driver!\n");
+            ddp_status = DDP_SUCCESS;
+        }
+
+        ddp_status = ice_swx_verify_driver();
+        if(ddp_status != DDP_SUCCESS)
+        {
+            debug_ddp_print("Cannot find ice_swx base driver!\n");
+            ddp_status = DDP_SUCCESS;
+        }
     } while(0);
 
-    if(Global_driver_os_ctx[family_100G].driver_available == FALSE &&
-       Global_driver_os_ctx[family_40G].driver_available == FALSE)
+    if(Global_driver_os_ctx[family_100G_SWX].driver_available == FALSE &&
+       Global_driver_os_ctx[family_100G_SW].driver_available  == FALSE &&
+       Global_driver_os_ctx[family_100G].driver_available     == FALSE &&
+       Global_driver_os_ctx[family_40G].driver_available      == FALSE)
     {
         ddp_status = DDP_NO_BASE_DRIVER;
         debug_ddp_print("Cannot find base drivers!\n");
@@ -996,7 +1018,9 @@ initialize_adapter(adapter_t* adapter)
     case family_40G:
         i40e_initialize_device(adapter);
         break;
-    case family_100G:
+    case family_100G: /* fall-through */
+    case family_100G_SW:
+    case family_100G_SWX:
         ice_initialize_device(adapter);
         break;
     case family_none:

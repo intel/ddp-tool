@@ -107,6 +107,12 @@ typedef struct _ice_profiles_info_t{
 ddp_status_t
 ice_verify_driver(void);
 
+ddp_status_t
+ice_sw_verify_driver(void);
+
+ddp_status_t
+ice_swx_verify_driver(void);
+
 void
 ice_initialize_device(adapter_t* adapter);
 
