@@ -134,6 +134,73 @@ determine_output_stream(FILE** file, char* file_name)
 }
 
 ddp_status_t
+generate_table_for_file(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name)
+{
+    char         version_string[DDP_VERSION_LENGTH];
+    char         track_id_string[DDP_TRACKID_LENGTH];
+    node_t*      node    = NULL;
+    adapter_t*   adapter = NULL;
+    ddp_status_t status  = DDP_SUCCESS;
+
+    memset(version_string, '\0', DDP_VERSION_LENGTH * sizeof(char));
+    memset(track_id_string, '\0', DDP_TRACKID_LENGTH * sizeof(char));
+    
+    do
+    {
+        /* don't print table in case of an error during file parsing. */
+        if(tool_status == DDP_INCORRECT_PACKAGE_FILE || tool_status == DDP_INTERNAL_GENERIC_ERROR)
+        {
+            break;
+        }
+        node = get_node(adapter_list);
+        if(node == NULL)
+        {
+            status = DDP_INTERNAL_GENERIC_ERROR; /* list shouldn't be empty - this is unexpected scenario */
+            break;
+        }
+        adapter = get_adapter_from_list_node(node);
+
+        /* If track_id is incorrect, set default strings in table */
+        if(adapter->profile_info.track_id == 0)
+        {
+            strcpy_sec(track_id_string,
+                       DDP_TRACKID_LENGTH,
+                       EMPTY_MESSAGE,
+                       strlen(EMPTY_MESSAGE));
+        }
+        else
+        {
+            /* Prepare string with TrackID value */
+            snprintf(track_id_string,
+                     DDP_TRACKID_LENGTH,
+                     "%X",
+                     adapter->profile_info.track_id);
+        }
+
+        /* Prepare string with Version value */
+        snprintf(version_string,
+                 DDP_VERSION_LENGTH,
+                 "%d.%d.%d.%d",
+                 adapter->profile_info.version.major,
+                 adapter->profile_info.version.minor,
+                 adapter->profile_info.version.update,
+                 adapter->profile_info.version.draft);
+
+        printf("File Name                          TrackId  Version      Name                  \n");
+        printf("================================== ======== ============ ==============================\n");
+
+        /* the binary file inspection mode allows to operate only on file contained one profile */
+        printf("%-34s %-8s %-12s %-30s\n",
+               adapter->branding_string, 
+               track_id_string, 
+               version_string,
+               adapter->profile_info.name);
+    } while(0);
+
+    return status;
+}
+
+ddp_status_t
 generate_table(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name)
 {
     node_t*      node    = NULL;
@@ -272,6 +339,79 @@ generate_xml(list_t* adapter_list, ddp_status_value_t tool_status, char* file_na
     return status;
 }
 
+/* Function print_xml_profile() save to the input parameter stream the string with
+ * information about profiles. The string is in XML format
+ * 
+ * Parameters:
+ * [in,out] adapter      Handle to adapter
+ * [out]    stream       Pointer to output buffer
+ *
+ * Returns: Nothing.
+ */
+void
+print_xml_profile(adapter_t* adapter, FILE* stream)
+{
+    fprintf(stream,
+           "\t<DDPpackage track_id=\"%08X\" version=\"%d.%d.%d.%d\" name=\"%s\"></DDPpackage>\n",
+            adapter->profile_info.track_id,
+            adapter->profile_info.version.major,
+            adapter->profile_info.version.minor,
+            adapter->profile_info.version.update,
+            adapter->profile_info.version.draft,
+            adapter->profile_info.name);
+}
+
+ddp_status_t
+generate_xml_for_file(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name)
+{
+    FILE*        xml_file = NULL;
+    node_t*      node     = NULL;
+    adapter_t*   adapter  = NULL;
+    ddp_status_t status   = DDP_SUCCESS;
+
+    /* Handle empty list scenario and report error */
+    if(adapter_list->number_of_nodes == 0)
+    {
+        return generate_xml_error(tool_status, file_name, get_error_message(tool_status));
+    }
+
+    do
+    {
+        node = get_node(adapter_list);
+        if(node == NULL)
+        {
+            status = DDP_INCORRECT_FUNCTION_PARAMETERS;
+            break;
+        }
+
+        status = determine_output_stream(&xml_file, file_name);
+        if(status != DDP_SUCCESS)
+        {
+            break;
+        }
+
+        fprintf(xml_file, "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<DDPInventory lang=\"en\">\n");
+        adapter = get_adapter_from_list_node(node);
+        if(adapter == NULL)
+        {
+            status = DDP_CANNOT_CREATE_OUTPUT_FILE;
+            break;
+        }
+
+        fprintf(xml_file, "\t<Instance file=\"%s\">\n", adapter->branding_string);
+        print_xml_profile(adapter, xml_file);
+        fprintf(xml_file, "\t</Instance>\n");
+        fprintf(xml_file, "</DDPInventory>\n");
+    } while(0);
+
+    if(xml_file != NULL && file_name != NULL)
+    {
+        fclose(xml_file);
+    }
+
+    return status;
+}
+
 void
 print_xml_adapter(adapter_t* adapter, FILE* stream)
 {
@@ -286,18 +426,21 @@ print_xml_adapter(adapter_t* adapter, FILE* stream)
             adapter->branding_string);
     if(adapter->profile_info.section_size > 0)
     {
-        fprintf(stream,
-                "\t<DDPpackage track_id=\"%08X\" version=\"%d.%d.%d.%d\" name=\"%s\"></DDPpackage>\n",
-                adapter->profile_info.track_id,
-                adapter->profile_info.version.major,
-                adapter->profile_info.version.minor,
-                adapter->profile_info.version.update,
-                adapter->profile_info.version.draft,
-                adapter->profile_info.name);
+        print_xml_profile(adapter, stream);
     }
     fprintf(stream, "\t</Instance>\n");
 }
 
+/* The function generates XML with information discovered by the tool. Data are saved to the file provided or 
+ * directly to the console if file_name is equal NULL. 
+ * 
+ * Parameters:
+ * [in] tool_status      Tool status from previouse steps.
+ * [in] file_name        File name.
+ * [in] error_message    Error message to include in XML file.
+ *
+ * Returns: DDP_SUCCESS on success, otherwise error code. 
+ */
 ddp_status_t
 generate_xml_error(ddp_status_value_t tool_status, char* file_name, char* error_message)
 {
@@ -378,9 +521,16 @@ generate_json(list_t* adapter_list, ddp_status_value_t tool_status, char* file_n
                 fprintf(json_file, "\t\t{\n");
             }
 
-            print_json_adapter(adapter,
-                               json_file,
-                               &(adapter_list->number_of_nodes));
+            if(adapter->device_id == 0) /* If deviceid is equal 0, it means that tool is working with a file.*/
+            {
+                print_json_file(adapter, json_file, &(adapter_list->number_of_nodes));
+            }
+            else
+            {
+                print_json_adapter(adapter,
+                                   json_file,
+                                   &(adapter_list->number_of_nodes));
+            }
 
             if(adapter_list->number_of_nodes > 1)
             {
@@ -415,6 +565,39 @@ generate_json(list_t* adapter_list, ddp_status_value_t tool_status, char* file_n
     }
 
     return status;
+}
+
+void
+print_json_file(adapter_t* adapter, FILE* stream, uint32_t* number_of_nodes)
+{
+    char* indentation_string = "\t\t";
+
+    if(*number_of_nodes > 1)
+    {
+        indentation_string = "\t\t\t";
+    }
+
+    /* Print file name */
+
+    fprintf(stream, "%s\"file_name\": \"%s\"\n", indentation_string, adapter->branding_string);
+    /* Print DDP profile */
+    fprintf(stream, "%s\"DDPpackage\": {\n", indentation_string);
+    fprintf(stream,
+            "%s\t\"track_id\": \"%X\",\n",
+            indentation_string,
+            adapter->profile_info.track_id);
+    fprintf(stream,
+            "%s\t\"version\": \"%d.%d.%d.%d\",\n",
+            indentation_string,
+            adapter->profile_info.version.major,
+            adapter->profile_info.version.minor,
+            adapter->profile_info.version.update,
+            adapter->profile_info.version.draft);
+    fprintf(stream,
+            "%s\t\"name\": \"%s\"\n",
+            indentation_string,
+            adapter->profile_info.name);
+    fprintf(stream, "%s}\n", indentation_string);
 }
 
 void

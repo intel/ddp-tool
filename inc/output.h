@@ -49,10 +49,16 @@ ddp_print(char* format, ...);
 /* Prototypes for ddp_func_print_adapter_list function pointer */
 
 ddp_status_t
+generate_table_for_file(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name);
+
+ddp_status_t
 generate_table(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name);
 
 ddp_status_t
 generate_xml(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name);
+
+ddp_status_t
+generate_xml_for_file(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name);
 
 ddp_status_t
 generate_json(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name);
@@ -67,6 +73,9 @@ print_xml_adapter(adapter_t* adapter, FILE* stream);
 
 void
 print_json_adapter(adapter_t* adapter, FILE* stream, uint32_t* number_of_nodes);
+
+void
+print_json_file(adapter_t* adapter, FILE* stream, uint32_t* number_of_nodes);
 
 /* Error printing output functions */
 

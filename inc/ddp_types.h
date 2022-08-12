@@ -51,7 +51,6 @@ typedef enum _adapter_family_t{
     family_40G,
     family_100G,
     family_100G_SW,
-    family_100G_SWX,
     family_last     /* add new entries before this one */
 } adapter_family_t;
 
@@ -119,6 +118,39 @@ typedef struct _ioctl_structure_t{
     uint8_t  data[1];      /* reserved memory for pointer for buffer */
 } ioctl_structure_t;
 
+typedef enum _adminq_error_code_t{
+    AQ_EOK          = 0,    /* No Error (success) */
+    AQ_EPREM        = 1,    /* Operation not permitted */
+    AQ_ENOENT       = 2,    /* No such element */
+    AQ_ESRCH        = 3,    /* Bad opcode */
+    AQ_EINTR        = 4,    /* Operation interrupted */
+    AQ_EIO          = 5,    /* I/O error or firmware internal error */
+    AQ_ENXIO        = 6,    /* No such resource */
+    AQ_E2BIG        = 7,    /* Arg too long */
+    AQ_EAGAIN       = 8,    /* Try again */
+    AQ_ENOMEM       = 9,    /* Out of memory */
+    AQ_EACCES       = 10,   /* Permission denied */
+    AQ_EFAULT       = 11,   /* Bad address */
+    AQ_EBUSY        = 12,   /* Device or resource busy */
+    AQ_EEXIST       = 13,   /* Attempt to create something that exists */
+    AQ_EINVAL       = 14,   /* Invalid argument */
+    AQ_ENOTTY       = 15,   /* Not a typewriter */
+    AQ_ENOSPC       = 16,   /* No space left or allocation failure */
+    AQ_ENOSYS       = 17,   /* Function not implemented */
+    AQ_ERANGE       = 18,   /* Parameter out of range */
+    AQ_EFLUSHED     = 19,   /* Command flushed because a previous command completed in error */
+    AQ_EBAD_ADDR    = 20,   /* Internal error, descriptor contains a bad pointer */
+    AQ_EMODE        = 21,   /* Operation not allowed in current device mode */
+    AQ_EFBIG        = 22,   /* File Too Big */
+    AQ_ESBCOMP      = 23,   /* Cannot find enough space for the message in the sideband or mailbox queue*/
+    AQ_ENOSEC       = 24,   /* Missing security manifest */
+    AQ_EBADSIG      = 25,   /* Bad RSA signature */
+    AQ_ESVN         = 26,   /* SVN number prohibits this package */
+    AQ_EBADMAN      = 27,   /* Manifest hash mismatch */
+    AQ_EBADBUF      = 28,   /* Buffer hash mismatches manifest */
+    AQ_EACCES_BMCU  = 29    /* MC update in progress */
+} adminq_error_code_t;
+
 typedef struct _adminq_desc_t{
     uint16_t flags;
     uint16_t opcode;
@@ -183,6 +215,12 @@ typedef struct _ddp_descriptor_t
     } descriptor_type;
     void* descriptor;
 } ddp_descriptor_t;
+
+union name
+{
+    char* branding_String;
+    char* file_name;
+};
 
 struct _adapter_t{
     ddp_tdi            tdi;

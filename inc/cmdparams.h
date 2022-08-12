@@ -43,6 +43,6 @@ bool
 check_command_parameter(uint32_t param);
 
 ddp_status_t
-parse_command_line_parameters(int argc, char ** argv, char ** interface_key, char ** file_name);
+parse_command_line_parameters(int argc, char ** argv, char ** interface_key, char ** file_name, char** input_file_name);
 
 #endif

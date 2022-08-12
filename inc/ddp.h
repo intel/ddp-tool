@@ -54,6 +54,7 @@
 #include "os.h"
 #include "i40e.h"
 #include "ice.h"
+#include "package_file.h"
 
 #include <unistd.h>
 
@@ -80,7 +81,6 @@ typedef struct ifreq ifreq_t;
 
 #define DDP_DRIVER_NAME_40G               "i40e"
 #define DDP_DRIVER_NAME_100G              "ice"
-#define DDP_DRIVER_NAME_100G_SW           "ice_sw"
 #define DDP_DRIVER_NAME_100G_SWX          "ice_swx"
 
 /* String buffer values */
@@ -107,12 +107,14 @@ typedef struct ifreq ifreq_t;
 
 #define DDP_MAJOR_VERSION                   1
 #define DDP_MINOR_VERSION                   0
-#define DDP_BUILD_VERSION                   18
-#define DDP_FIX_VERSION                     2
+#define DDP_BUILD_VERSION                   22
+#define DDP_FIX_VERSION                     0
 
 #define DDP_MIN_BASE_DRIVER_VERSION_MAJOR 2
 #define DDP_MIN_BASE_DRIVER_VERSION_MINOR 7
 #define DDP_MIN_BASE_DRIVER_VERSION_BUILD 27
+
+#define YEAR_OFFSET_IN_DATE_STRING        7
 
 #define MAX_FILE_NAME                     300
 
@@ -125,15 +127,17 @@ typedef struct ifreq ifreq_t;
 #define DDP_SILENT_MODE                   'l'
 #define DDP_JSON_COMMAND_PARAMETER        'j'
 #define DDP_ALL_ADAPTERS_PARAMETER        'a'
+#define DDP_PARSE_FILE_COMMAND_PARAMETER  'f'
 
-#define DDP_LOCATION_COMMAND_PARAMETER_BIT  (1 << 0)  /* '-s' - location command line parameter */
-#define DDP_ALL_ADAPTERS_PARAMETER_BIT      (1 << 1)  /* '-a' - Show information about all functions supported devices */
-#define DDP_HELP_COMMAND_PARAMETER_BIT      (1 << 2)  /* '-h', '-?', '--help' - help command line parameter */
-#define DDP_INTERFACE_COMMAND_PARAMETER_BIT (1 << 3)  /* '-i' - interface command line parameter */
-#define DDP_XML_COMMAND_PARAMETER_BIT       (1 << 4)  /* '-x' - XML file command line parameter */
-#define DDP_VERSION_COMMAND_PARAMETER_BIT   (1 << 5)  /* '-v' - version command line parameter */
-#define DDP_SILENT_MODE_PARAMETER_BIT       (1 << 6)  /* '-l' - silent mode for scripts*/
-#define DDP_JSON_COMMAND_PARAMETER_BIT      (1 << 7)  /* '-j' - JSON file command line parameter */
+#define DDP_LOCATION_COMMAND_PARAMETER_BIT   (1 << 0)  /* '-s' - location command line parameter */
+#define DDP_ALL_ADAPTERS_PARAMETER_BIT       (1 << 1)  /* '-a' - Show information about all functions supported devices */
+#define DDP_HELP_COMMAND_PARAMETER_BIT       (1 << 2)  /* '-h', '-?', '--help' - help command line parameter */
+#define DDP_INTERFACE_COMMAND_PARAMETER_BIT  (1 << 3)  /* '-i' - interface command line parameter */
+#define DDP_XML_COMMAND_PARAMETER_BIT        (1 << 4)  /* '-x' - XML file command line parameter */
+#define DDP_VERSION_COMMAND_PARAMETER_BIT    (1 << 5)  /* '-v' - version command line parameter */
+#define DDP_SILENT_MODE_PARAMETER_BIT        (1 << 6)  /* '-l' - silent mode for scripts*/
+#define DDP_JSON_COMMAND_PARAMETER_BIT       (1 << 7)  /* '-j' - JSON file command line parameter */
+#define DDP_PARSE_FILE_COMMAND_PARAMETER_BIT (1 << 8)  /* '-f' - analize binary file */
 
 #define COMPARE_PCI_LOCATION(a, b) ((a)->location.segment) == ((b)->location.segment) ? \
                                     ((a)->location.bus) == ((b)->location.bus) ? TRUE : FALSE : FALSE

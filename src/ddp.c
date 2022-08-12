@@ -91,7 +91,10 @@ get_error_message(ddp_status_value_t status)
         message = "Cannot create output file";
         break;
     case DDP_DEVICE_NOT_FOUND:
-        message = "Cannot find specific devices" ;
+        message = "Cannot find specific devices";
+        break;
+    case DDP_INCORRECT_PACKAGE_FILE:
+        message = "Cannot parse the DDP Package file";
         break;
     default:
         message = "";
@@ -279,9 +282,6 @@ is_supported_driver(adapter_t* adapter)
                 strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G, strlen(DDP_DRIVER_NAME_100G));
                 break;
             case family_100G_SW:
-                strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G_SW, strlen(DDP_DRIVER_NAME_100G_SW));
-                break;
-            case family_100G_SWX:
                 strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G_SWX, strlen(DDP_DRIVER_NAME_100G_SWX));
                 break;
             case family_none:
@@ -812,23 +812,39 @@ initialize_tool()
 
     do
     {
-        if(is_root_permission() == FALSE)
-        {
-            ddp_status = DDP_INSUFFICIENT_PRIVILEGES;
-            break;
-        }
-
         if(check_command_parameter(DDP_XML_COMMAND_PARAMETER_BIT))
         {
-            ddp_func_print_adapter_list = generate_xml;
+            if(check_command_parameter(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT) == TRUE)
+            {
+                ddp_func_print_adapter_list = generate_xml_for_file;
+            }
+            else
+            {
+                ddp_func_print_adapter_list = generate_xml;
+            }
         }
         else if (check_command_parameter(DDP_JSON_COMMAND_PARAMETER_BIT))
         {
             ddp_func_print_adapter_list = generate_json;
         }
+        else if(check_command_parameter(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT) == TRUE)
+        {
+            ddp_func_print_adapter_list = generate_table_for_file; /* We need specific table for file*/
+        }
         else
         {
             ddp_func_print_adapter_list = generate_table;
+        }
+
+        if(check_command_parameter(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT) == TRUE)
+        {
+            break;
+        }
+
+        if(is_root_permission() == FALSE)
+        {
+            ddp_status = DDP_INSUFFICIENT_PRIVILEGES;
+            break;
         }
 
         /* verify if 40G driver exists and supports DDP */
@@ -847,13 +863,6 @@ initialize_tool()
             ddp_status = DDP_SUCCESS;
         }
 
-        ddp_status = ice_sw_verify_driver();
-        if(ddp_status != DDP_SUCCESS)
-        {
-            debug_ddp_print("Cannot find ice_sw base driver!\n");
-            ddp_status = DDP_SUCCESS;
-        }
-
         ddp_status = ice_swx_verify_driver();
         if(ddp_status != DDP_SUCCESS)
         {
@@ -862,10 +871,10 @@ initialize_tool()
         }
     } while(0);
 
-    if(Global_driver_os_ctx[family_100G_SWX].driver_available == FALSE &&
-       Global_driver_os_ctx[family_100G_SW].driver_available  == FALSE &&
-       Global_driver_os_ctx[family_100G].driver_available     == FALSE &&
-       Global_driver_os_ctx[family_40G].driver_available      == FALSE)
+    if(check_command_parameter(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT) == FALSE && /* drivers are not necessary in parsing binary file mode */
+       Global_driver_os_ctx[family_100G_SW].driver_available == FALSE &&
+       Global_driver_os_ctx[family_100G].driver_available == FALSE &&
+       Global_driver_os_ctx[family_40G].driver_available == FALSE)
     {
         ddp_status = DDP_NO_BASE_DRIVER;
         debug_ddp_print("Cannot find base drivers!\n");
@@ -969,11 +978,15 @@ print_help(void)
     printf("    -v                  Prints version of DDP tool\n");
     printf("    -x [FILENAME]       Output in XML format to a file. If [FILENAME] is not\n"
            "                        specified, output is sent to standard output\n");
+    printf("    -f [FILENAME]       Displays information about the profile contained\n"
+           "                        in the specified package file\n");
 }
 
 void
 print_header()
 {
+    const char* year = __DATE__ + YEAR_OFFSET_IN_DATE_STRING;
+
     /* for silent mode tool shouldn't print anything on screen  */
     if(check_command_parameter(DDP_SILENT_MODE_PARAMETER_BIT))
         return;
@@ -984,7 +997,7 @@ print_header()
            DDP_MINOR_VERSION,
            DDP_BUILD_VERSION,
            DDP_FIX_VERSION);
-    printf("Copyright (C) 2019 - 2021 Intel Corporation.\n\n");
+    printf("Copyright (C) 2019 - %s Intel Corporation.\n\n", year);
 }
 
 ddp_status_t
@@ -1020,7 +1033,6 @@ initialize_adapter(adapter_t* adapter)
         break;
     case family_100G: /* fall-through */
     case family_100G_SW:
-    case family_100G_SWX:
         ice_initialize_device(adapter);
         break;
     case family_none:
@@ -1037,11 +1049,35 @@ initialize_adapter(adapter_t* adapter)
 }
 
 ddp_status_t
+generate_dummy_adapter_list(list_t* adapter_list)
+{
+    adapter_t*   dummy_adapter = NULL;
+    ddp_status_t status        = DDP_SUCCESS;
+
+    do
+    {
+        dummy_adapter = malloc_sec(sizeof(adapter_t));
+        if(dummy_adapter == NULL)
+        {
+            break;
+        }
+
+        status = add_node_data(adapter_list, (void*) dummy_adapter, sizeof dummy_adapter);
+        if(status != DDP_SUCCESS)
+        {
+            break;
+        }
+    } while (0);
+
+    return status;
+}
+
+ddp_status_t
 generate_adapter_list(list_t* adapter_list, char* interface_key)
 {
     adapter_t       current_device;
     adapter_t       last_physical_device;
-    char            location_from_dir[13];
+    char            location_from_dir[PCI_LOCATION_STRING_SIZE +1];
     adapter_t*      adapter             = NULL;
     struct dirent** name_list           = NULL;
     ddp_status_t    status              = DDP_SUCCESS;
@@ -1260,6 +1296,7 @@ main(int argc, char** argv)
 {
     list_t       adapter_list;
     char*        file_name       = NULL;
+    char*        input_file_name = NULL;
     char*        interface_key   = NULL;
     ddp_status_t function_status = DDP_SUCCESS;
     ddp_status_t status          = DDP_SUCCESS;
@@ -1269,7 +1306,7 @@ main(int argc, char** argv)
 
     do
     {
-        function_status = parse_command_line_parameters(argc, argv, &interface_key, &file_name);
+        function_status = parse_command_line_parameters(argc, argv, &interface_key, &file_name, &input_file_name);
 
         print_header();
 
@@ -1297,6 +1334,19 @@ main(int argc, char** argv)
         {
             print_help();
             break; /* The 'Help' flag has higher priority */
+        }
+
+        if(check_command_parameter(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT) == TRUE)
+        {
+            generate_dummy_adapter_list(&adapter_list);
+            function_status = analyze_binary_file(&adapter_list, input_file_name);
+            if(function_status != DDP_SUCCESS)
+            {
+                debug_ddp_print("analyze_binary_file error: 0x%X\n", function_status);
+                status = function_status;
+            }
+
+            break; /* In binary file analyzing mode the tool shouldn't work with the physical adapters. */
         }
 
         function_status = generate_adapter_list(&adapter_list, interface_key);

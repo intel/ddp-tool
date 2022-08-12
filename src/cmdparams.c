@@ -26,7 +26,7 @@
 #include "cmdparams.h"
 
 static uint32_t static_command_line_parameters = 0;
-static char*           static_char_options = "s:ahlj::i:x::v?";
+static char*           static_char_options = "f:s:ahlj::i:x::v?";
 static struct option   static_string_options[] =
 {
     {"help",  0, 0,    'h'},
@@ -172,7 +172,37 @@ validate_command_line_parameters(int argc, char** argv)
 }
 
 ddp_status_t
-parse_command_line_parameters(int argc, char** argv, char** interface_key, char** file_name)
+validate_file_name(char* test_string)
+{
+    const char*     forbidden_printable_symbols_list = "\'\"<>:|&%?*";
+    ddp_status_t    status                           = DDP_SUCCESS;
+
+    do
+    {
+        if(test_string == NULL)
+        {
+            status = DDP_INCORRECT_FUNCTION_PARAMETERS;
+            break;
+        }
+        if(is_string_printable(test_string) == FALSE)
+        {
+            status = DDP_INVALID_FILE_NAME;
+            break;
+        }
+        if(strpbrk(test_string, forbidden_printable_symbols_list) != NULL)
+        {
+            debug_ddp_print("A file name can't contain any of the following characters: %s\n",
+                            forbidden_printable_symbols_list);
+            status = DDP_INVALID_FILE_NAME;
+            break;
+        }
+    } while (0);
+
+    return status;
+}
+
+ddp_status_t
+parse_command_line_parameters(int argc, char** argv, char** interface_key, char** file_name, char** input_file_name)
 {
     ddp_status_t status       = DDP_SUCCESS;
     int          parameter    = 0;
@@ -274,13 +304,27 @@ parse_command_line_parameters(int argc, char** argv, char** interface_key, char*
                 }
                 static_command_line_parameters |= DDP_JSON_COMMAND_PARAMETER_BIT;
                 break;
+            case DDP_PARSE_FILE_COMMAND_PARAMETER:
+                status = CHECK_DUPLICATE(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT);
+                if(validate_file_name(optarg) != DDP_SUCCESS)
+                {
+                    status = DDP_BAD_COMMAND_LINE_PARAMETER;
+                    break;
+                }
+                *input_file_name = optarg;
+                static_command_line_parameters |= DDP_PARSE_FILE_COMMAND_PARAMETER_BIT;
+                break;
             default:
                 status = DDP_BAD_COMMAND_LINE_PARAMETER;
                 break;
             }
 
-            if(CONFLICT_PARAMETERS(DDP_LOCATION_COMMAND_PARAMETER_BIT, DDP_INTERFACE_COMMAND_PARAMETER_BIT) ||
-               CONFLICT_PARAMETERS(DDP_XML_COMMAND_PARAMETER_BIT, DDP_JSON_COMMAND_PARAMETER_BIT))
+            if(CONFLICT_PARAMETERS(DDP_LOCATION_COMMAND_PARAMETER_BIT, DDP_INTERFACE_COMMAND_PARAMETER_BIT) ||  /* cannot use '-s' and '-i' at the same execution */
+               CONFLICT_PARAMETERS(DDP_XML_COMMAND_PARAMETER_BIT, DDP_JSON_COMMAND_PARAMETER_BIT)           ||  /* cannot use xml and json at the same execution */
+               CONFLICT_PARAMETERS(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT, DDP_INTERFACE_COMMAND_PARAMETER_BIT)   ||  /* cannot use '-f' with adapter specific parameter ('-i') */
+               CONFLICT_PARAMETERS(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT, DDP_LOCATION_COMMAND_PARAMETER_BIT)    ||  /* cannot use '-f' with adapter specific parameter ('-s') */
+               CONFLICT_PARAMETERS(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT, DDP_ALL_ADAPTERS_PARAMETER_BIT)            /* cannot use '-f' with adapter specific parameter ('-a') */
+              )
             {
                 status = DDP_BAD_COMMAND_LINE_PARAMETER;
             }

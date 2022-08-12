@@ -30,6 +30,9 @@
 #include "qdl_codes.h"
 #include <time.h>
 
+#define DDPT_IS_TYPE_ALIGNED(type, length)  ((sizeof(type) % (length)) == 0 ? true : false)
+#define DDPT_TYPE_LENGTH(type, length)      (sizeof(type) / (length))
+
 supported_devices_t ice_supported_devices[] =
 {
         /*=============================================*/
@@ -211,19 +214,34 @@ _ice_acquire_adminq(adapter_t* adapter)
     return status;
 }
 
+/* Function releases adminq by clearing value proper AQ related registers.
+ * 
+ * Parameters:
+ * [in,out] adapter      Handle to adapter
+ *
+ * Returns: DDP status.
+ */
 ddp_status_t
 _ice_release_adminq(adapter_t* adapter)
 {
     ddp_status_t status                = DDP_SUCCESS;
     uint32_t     input_register_buffer = 0xFFFFFFFF;
 
-    status = write_register(adapter, GL_HIDA(0), DDP_DWORD_LENGTH, &input_register_buffer);
-    if(status != DDP_SUCCESS)
+    do
     {
-        debug_ddp_print("release AdminQ failed!\n");
-        debug_ddp_print("write_register status: 0x%X\n", status);
-        status = DDP_CANNOT_COMMUNICATE_ADAPTER;
-    }
+        if(adapter == NULL)
+        {
+            status = DDP_INCORRECT_FUNCTION_PARAMETERS;
+            break;
+        }
+        status = write_register(adapter, GL_HIDA(0), DDP_DWORD_LENGTH, &input_register_buffer);
+        if(status != DDP_SUCCESS)
+        {
+            debug_ddp_print("release AdminQ failed!\n");
+            debug_ddp_print("write_register status: 0x%X\n", status);
+            status = DDP_CANNOT_COMMUNICATE_ADAPTER;
+        }
+    } while(0);
 
     return status;
 }
@@ -276,36 +294,50 @@ ddp_status_t
 _ice_recv_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor)
 {
     adminq_desc_t received_descriptor;
-    uint32_t*     desc    = (uint32_t*)&received_descriptor;
-    ddp_status_t  status  = DDP_SUCCESS;
-    uint32_t      i       = 0;
+    uint32_t*     desc        = (uint32_t*)&received_descriptor;
+    ddp_status_t  status      = DDP_SUCCESS;
+    uint32_t      i           = 0;
+    uint32_t      desc_length = DDPT_TYPE_LENGTH(adminq_desc_t, DDP_DWORD_LENGTH);
+
+    /* Check asserts */
+    _Static_assert(DDPT_IS_TYPE_ALIGNED(adminq_desc_t, DDP_DWORD_LENGTH), "adminq_desc_t type not aligned.");
 
     MEMINIT(&received_descriptor);
 
-    for(i = 0; i < sizeof(adminq_desc_t) / DDP_DWORD_LENGTH; i++)
+    do
     {
-        status = read_register(adapter, GL_HIDA(i), DDP_DWORD_LENGTH, &desc[i]);
-        if(status != DDP_SUCCESS)
+        /* Check inputs */
+        if(adapter == NULL || descriptor == NULL)
         {
-            debug_ddp_print("%d: send adminQ failed during read register 0x%X\n", __LINE__, GL_HIDA(i));
-            debug_ddp_print("read register failed: 0x%X\n", status);
+            status = DDP_INCORRECT_FUNCTION_PARAMETERS;
             break;
         }
-    }
 
-    /* validate response */
-    if(status != DDP_SUCCESS                            ||
-       received_descriptor.opcode != descriptor->opcode ||
-       received_descriptor.retval != 0                  ||
-       (received_descriptor.flags & 4) != 0)
-    {
-           status = DDP_AQ_COMMAND_FAIL;
-           debug_ddp_print("AdminQ command failed!\n");
-    }
-    else
-    {
-        memcpy_sec(descriptor, sizeof(adminq_desc_t), desc, sizeof received_descriptor);
-    }
+        for(i = 0; i < desc_length; i++)
+        {
+            status = read_register(adapter, GL_HIDA(i), DDP_DWORD_LENGTH, &desc[i]);
+            if(status != DDP_SUCCESS)
+            {
+                debug_ddp_print("%d: send adminQ failed during read register 0x%X\n", __LINE__, GL_HIDA(i));
+                debug_ddp_print("read register failed: 0x%X\n", status);
+                break;
+            }
+        }
+
+        /* validate response */
+        if(status != DDP_SUCCESS                                            ||
+           received_descriptor.opcode != descriptor->opcode                 ||
+           received_descriptor.retval != AQ_EOK                             ||
+           (received_descriptor.flags & ICE_AQ_FLAG_ERR) == ICE_AQ_FLAG_ERR)
+        {
+            status = DDP_AQ_COMMAND_FAIL;
+            debug_ddp_print("AdminQ command failed! Returned error code: %u\n", received_descriptor.retval);
+        }
+        else
+        {
+            memcpy_sec(descriptor, sizeof(adminq_desc_t), desc, sizeof received_descriptor);
+        }
+    } while(0);
 
     return status;
 }
@@ -816,7 +848,7 @@ ice_verify_driver(void)
 }
 
 ddp_status_t
-ice_sw_verify_driver(void)
+ice_swx_verify_driver(void)
 {
     ddp_status_t         status             = DDP_SUCCESS;
     driver_os_version_t* ice_driver_version = &Global_driver_os_ctx[family_100G_SW].driver_version;
@@ -826,22 +858,6 @@ ice_sw_verify_driver(void)
     {
         Global_driver_os_ctx[family_100G_SW].driver_available = TRUE;
         Global_driver_os_ctx[family_100G_SW].driver_supported = TRUE;
-    }
-
-    return status;
-}
-
-ddp_status_t
-ice_swx_verify_driver(void)
-{
-    ddp_status_t         status             = DDP_SUCCESS;
-    driver_os_version_t* ice_driver_version = &Global_driver_os_ctx[family_100G_SWX].driver_version;
-
-    status = _100g_verify_driver("ice_swx", ice_driver_version);
-    if(status == DDP_SUCCESS)
-    {
-        Global_driver_os_ctx[family_100G_SWX].driver_available = TRUE;
-        Global_driver_os_ctx[family_100G_SWX].driver_supported = TRUE;
     }
 
     return status;

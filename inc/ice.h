@@ -53,6 +53,7 @@
 
 #define ICE_DESC_COOKIE_L_DWORD_OFFSET   3
 
+#define ICE_AQ_FLAG_ERR                  (1 << 2)
 #define ICE_AQ_FLAG_BUF                  (1 << 12)  /* 0x1000 */
 #define ICE_AQ_FLAG_SI                   (1 << 13)  /* 0x2000 */
 #define ICE_LOCK_SEMAPHORE_VALUE         0xBABABABA /* Lock semaphore value */
@@ -106,9 +107,6 @@ typedef struct _ice_profiles_info_t{
 
 ddp_status_t
 ice_verify_driver(void);
-
-ddp_status_t
-ice_sw_verify_driver(void);
 
 ddp_status_t
 ice_swx_verify_driver(void);

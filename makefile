@@ -29,12 +29,12 @@ CC=gcc
 CFLAGS= -fstack-protector -fPIE -fPIC -Wformat -Wformat-security -Wall
 
 # Add flags preventing compiler from optimizing security checks
-CFLAGS  += -fno-delete-null-pointer-checks -fno-strict-overflow -fwrapv
+CFLAGS  += -fno-delete-null-pointer-checks -fno-strict-overflow -fwrapv -DQDL_NO_EXT_ACK
 
 LDFLAGS= -z noexecstack -z relro -z now -pie
 
 OBJ_DEVLINK = devlink_module/src/qdl.o devlink_module/src/qdl_msg.o devlink_module/src/qdl_pci.o devlink_module/src/qdl_debug.o
-OBJ= src/ddp.o src/ddp_list.o src/os.o src/cmdparams.o src/output.o src/i40e.o src/ice.o $(OBJ_DEVLINK)
+OBJ= src/ddp.o src/ddp_list.o src/os.o src/cmdparams.o src/output.o src/i40e.o src/ice.o src/package_file.o $(OBJ_DEVLINK)
 
 ifeq ($(type), debug)
 # No code optimization, produce debugging information

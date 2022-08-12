@@ -439,8 +439,10 @@ int _qdl_open_socket(qdl_dscr_t qdl_dscr)
 {
 	qdl_struct *dscr = (qdl_struct*)qdl_dscr;
 	int return_code = 0;
-	int sock_opt = 1;
 	int address_length = sizeof(struct sockaddr_nl);
+#ifndef QDL_NO_EXT_ACK
+	int sock_opt = 1;
+#endif
 
 	/* Get devlink socket */
 	dscr->socket = _qdl_get_socket();
@@ -468,10 +470,12 @@ int _qdl_open_socket(qdl_dscr_t qdl_dscr)
 		return QDL_OPEN_SOCKET_ERROR;
 	}
 
+#ifndef QDL_NO_EXT_ACK
 	return_code = setsockopt(dscr->socket, SOL_NETLINK, NETLINK_EXT_ACK, &sock_opt, sizeof(sock_opt));
 	if(return_code) {
 		return QDL_OPEN_SOCKET_ERROR;
 	}
+#endif
 
 	return QDL_SUCCESS;
 }

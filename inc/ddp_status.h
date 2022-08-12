@@ -43,6 +43,7 @@ typedef enum _ddp_status_value_t{
     DDP_CANNOT_READ_DEVICE_DATA,
     DDP_CANNOT_CREATE_OUTPUT_FILE,
     DDP_DEVICE_NOT_FOUND,
+    DDP_INCORRECT_PACKAGE_FILE,
     /* Internal error codes */
     DDP_AQ_COMMAND_FAIL = 100,
     DDP_UNKNOWN_ETH_NAME,
@@ -53,7 +54,10 @@ typedef enum _ddp_status_value_t{
     DDP_ADAPTER_ERROR,
     DDP_CANNOT_CREATE_DEVICE_DESCRIPTOR,
     DDP_FILE_ACCESS_ERROR,
-    DDP_MATCH_ERROR
+    DDP_MATCH_ERROR,
+    DDP_CANNOT_OPEN_FILE,
+    DDP_INVALID_FILE_NAME,
+    DDP_INCORRECT_SEGMENT
 } ddp_status_value_t;
 
 #endif
