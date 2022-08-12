@@ -100,10 +100,17 @@ supported_devices_t ice_supported_devices[] =
 
 uint16_t ice_supported_devices_size = sizeof(ice_supported_devices)/sizeof(ice_supported_devices[0]);
 
+/* Function checks if provided adapter is associated with virtual function.
+ *
+ * Parameters:
+ * [in,out] adapter      Handle to adapter
+ *
+ * Returns: DDP status.
+ */
 bool
 _ice_is_virtual_function(adapter_t* adapter)
 {
-    if(adapter->device_id == ICE_DEV_ID_ADAPTIVE_VF)
+    if(adapter != NULL && adapter->device_id == ICE_DEV_ID_ADAPTIVE_VF)
     {
         return TRUE;
     }
@@ -111,6 +118,13 @@ _ice_is_virtual_function(adapter_t* adapter)
     return FALSE;
 }
 
+/* Function acquires adminq by writing lock value to AQ related registers.
+ *
+ * Parameters:
+ * [in,out] adapter      Handle to adapter
+ *
+ * Returns: DDP status.
+ */
 ddp_status_t
 _ice_acquire_adminq(adapter_t* adapter)
 {
@@ -125,6 +139,13 @@ _ice_acquire_adminq(adapter_t* adapter)
 
     do
     {
+        /* Check input argument */
+        if(adapter == NULL)
+        {
+            status = DDP_INCORRECT_FUNCTION_PARAMETERS;
+            break;
+        }
+
         /* check if CSR mechanism is enabled */
         status = read_register(adapter, ICE_GL_HICR_EN_REGISTER, DDP_DWORD_LENGTH, &hicr_en);
         if(status != DDP_SUCCESS)
@@ -246,6 +267,14 @@ _ice_release_adminq(adapter_t* adapter)
     return status;
 }
 
+/* Function sends adminq command.
+ *
+ * Parameters:
+ * [in,out] adapter         Handle to adapter
+ * [in]     descriptor      Admin Queue descriptor
+ *
+ * Returns: DDP status.
+ */
 ddp_status_t
 _ice_send_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor)
 {
@@ -256,6 +285,13 @@ _ice_send_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor)
 
     do
     {
+        /* Check input arguments */
+        if(adapter == NULL || descriptor == NULL)
+        {
+            status = DDP_INCORRECT_FUNCTION_PARAMETERS;
+            break;
+        }
+
         for(i = 0; i < sizeof(adminq_desc_t) / DDP_DWORD_LENGTH; i++)
         {
             status = write_register(adapter, GL_HIDA(i), DDP_DWORD_LENGTH, &desc[i]);
@@ -335,7 +371,7 @@ _ice_recv_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor)
         }
         else
         {
-            memcpy_sec(descriptor, sizeof(adminq_desc_t), desc, sizeof received_descriptor);
+            memcpy_sec(descriptor, sizeof(adminq_desc_t), desc, sizeof(received_descriptor));
         }
     } while(0);
 

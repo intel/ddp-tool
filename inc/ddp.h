@@ -108,7 +108,7 @@ typedef struct ifreq ifreq_t;
 #define DDP_MAJOR_VERSION                   1
 #define DDP_MINOR_VERSION                   0
 #define DDP_BUILD_VERSION                   22
-#define DDP_FIX_VERSION                     0
+#define DDP_FIX_VERSION                     5
 
 #define DDP_MIN_BASE_DRIVER_VERSION_MAJOR 2
 #define DDP_MIN_BASE_DRIVER_VERSION_MINOR 7
