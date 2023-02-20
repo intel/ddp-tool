@@ -282,6 +282,9 @@ is_supported_driver(adapter_t* adapter)
                 strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G, strlen(DDP_DRIVER_NAME_100G));
                 break;
             case family_100G_SW:
+                strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G_SW, strlen(DDP_DRIVER_NAME_100G_SW));
+                break;
+            case family_100G_SWX:
                 strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G_SWX, strlen(DDP_DRIVER_NAME_100G_SWX));
                 break;
             case family_none:
@@ -511,7 +514,7 @@ execute_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor, uint16_t d
         /* preparing ioctl buffer - calculate size for data (ioctl + descriptor + adminq) */
         buffer_size = sizeof(ioctl_structure_t) + descriptor_size - 1;
         ioctl_data  = malloc_sec(buffer_size);
-        if(ioctl_data == NULL || ioctl_data->data == NULL)
+        if(ioctl_data == NULL)
         {
             status = DDP_ALLOCATE_MEMORY_FAIL;
             break;
@@ -580,7 +583,7 @@ write_register(adapter_t* adapter, uint32_t reg_address, uint32_t byte_number, v
 
         /* allocate memory for ioctl structure */
         ioctl_data = malloc_sec(sizeof(ioctl_structure_t) + byte_number - 1);
-        if(ioctl_data == NULL || ioctl_data->data == NULL)
+        if(ioctl_data == NULL)
         {
             status = DDP_ALLOCATE_MEMORY_FAIL;
             break;
@@ -655,7 +658,7 @@ read_register(adapter_t* adapter, uint32_t reg_address, uint32_t byte_number, vo
 
         /* allocate memory for ioctl structure */
         ioctl_data = malloc_sec(sizeof(ioctl_structure_t) + byte_number - 1);
-        if(ioctl_data == NULL || ioctl_data->data == NULL)
+        if(ioctl_data == NULL)
         {
             status = DDP_ALLOCATE_MEMORY_FAIL;
             break;
@@ -863,16 +866,23 @@ initialize_tool()
             ddp_status = DDP_SUCCESS;
         }
 
+        ddp_status = ice_sw_verify_driver();
+        if(ddp_status != DDP_SUCCESS)
+        {
+            debug_ddp_print("Cannot find ice_sw base driver!\n");
+            ddp_status = DDP_SUCCESS;
+        }
+    } while(0);
         ddp_status = ice_swx_verify_driver();
         if(ddp_status != DDP_SUCCESS)
         {
             debug_ddp_print("Cannot find ice_swx base driver!\n");
             ddp_status = DDP_SUCCESS;
         }
-    } while(0);
 
     if(check_command_parameter(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT) == FALSE && /* drivers are not necessary in parsing binary file mode */
        Global_driver_os_ctx[family_100G_SW].driver_available == FALSE &&
+       Global_driver_os_ctx[family_100G_SWX].driver_available == FALSE &&
        Global_driver_os_ctx[family_100G].driver_available == FALSE &&
        Global_driver_os_ctx[family_40G].driver_available == FALSE)
     {
@@ -985,8 +995,6 @@ print_help(void)
 void
 print_header()
 {
-    const char* year = __DATE__ + YEAR_OFFSET_IN_DATE_STRING;
-
     /* for silent mode tool shouldn't print anything on screen  */
     if(check_command_parameter(DDP_SILENT_MODE_PARAMETER_BIT))
         return;
@@ -997,7 +1005,7 @@ print_header()
            DDP_MINOR_VERSION,
            DDP_BUILD_VERSION,
            DDP_FIX_VERSION);
-    printf("Copyright (C) 2019 - %s Intel Corporation.\n\n", year);
+    printf("Copyright (C) 2019 - %d Intel Corporation.\n\n", DDP_COPYRIGHT_DATE);
 }
 
 ddp_status_t
@@ -1033,6 +1041,7 @@ initialize_adapter(adapter_t* adapter)
         break;
     case family_100G: /* fall-through */
     case family_100G_SW:
+    case family_100G_SWX:
         ice_initialize_device(adapter);
         break;
     case family_none:

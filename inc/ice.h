@@ -109,6 +109,9 @@ ddp_status_t
 ice_verify_driver(void);
 
 ddp_status_t
+ice_sw_verify_driver(void);
+
+ddp_status_t
 ice_swx_verify_driver(void);
 
 void

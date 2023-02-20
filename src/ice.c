@@ -884,16 +884,32 @@ ice_verify_driver(void)
 }
 
 ddp_status_t
-ice_swx_verify_driver(void)
+ice_sw_verify_driver(void)
 {
     ddp_status_t         status             = DDP_SUCCESS;
     driver_os_version_t* ice_driver_version = &Global_driver_os_ctx[family_100G_SW].driver_version;
 
-    status = _100g_verify_driver("ice_swx", ice_driver_version);
+    status = _100g_verify_driver("ice_sw", ice_driver_version);
     if(status == DDP_SUCCESS)
     {
         Global_driver_os_ctx[family_100G_SW].driver_available = TRUE;
         Global_driver_os_ctx[family_100G_SW].driver_supported = TRUE;
+    }
+
+    return status;
+}
+
+ddp_status_t
+ice_swx_verify_driver(void)
+{
+    ddp_status_t         status             = DDP_SUCCESS;
+    driver_os_version_t* ice_driver_version = &Global_driver_os_ctx[family_100G_SWX].driver_version;
+
+    status = _100g_verify_driver("ice_swx", ice_driver_version);
+    if(status == DDP_SUCCESS)
+    {
+        Global_driver_os_ctx[family_100G_SWX].driver_available = TRUE;
+        Global_driver_os_ctx[family_100G_SWX].driver_supported = TRUE;
     }
 
     return status;
