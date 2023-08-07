@@ -55,6 +55,6 @@ uint8_t* _qdl_put_msg_uint32_attr(uint8_t *msg, uint16_t type, uint32_t value);
 uint8_t* _qdl_put_msg_uint64_attr(uint8_t *msg, uint16_t type, uint64_t value);
 uint8_t* _qdl_put_msg_dynamic_attr(uint8_t *msg, uint16_t type, uint8_t *value, uint32_t size);
 uint8_t* _qdl_create_generic_msg(int id, int cmd_type, unsigned int *msg_size);
-void _qdl_print_msg(FILE *fp, uint8_t *buff, unsigned int buff_size);
+void _qdl_print_msg(FILE *fp, uint8_t *buff, uint32_t buff_size);
 
 #endif /* _QDL_MSG_H_ */

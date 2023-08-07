@@ -29,6 +29,7 @@
 #include <stdio.h>
 #include <stdint.h>
 #include <linux/types.h>
+#include "qdl_t.h"
 
 #include "ddp_status.h"
 
@@ -42,7 +43,6 @@
 #define DDP_DEVICE_INDEX_LENGTH               4
 #define DDP_CONNECTION_NAME_NOT_AVAILABLE     "N/A"
 
-typedef char     bool;
 typedef uint64_t physical_address_t;
 typedef struct   _node_t            node_t;
 

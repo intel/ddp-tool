@@ -33,7 +33,7 @@ void _qdl_print_debug(char* format, ...);
 void qdl_disable_debuglog(void);
 
 #define QDL_DEBUGLOG_ENTERING                         _qdl_print_debug("%s:%s:%d: Entering...\n", __FILE__, __FUNCTION__, __LINE__)
-#define QDL_DEBUGLOG_ERROR_MSG(msg)                   _qdl_print_debug("%s:%s:%d: %s\n", msg)
+#define QDL_DEBUGLOG_ERROR_MSG(msg)                   _qdl_print_debug("%s:%s:%d: %s\n", __FILE__, __FUNCTION__, __LINE__, msg)
 #define QDL_DEBUGLOG_FUNCTION_FAIL(function, status)  _qdl_print_debug("%s:%s:%d: %s failed - error: %d\n", __FILE__, __FUNCTION__, __LINE__, function, status)
 
 #endif /* _QDL_DEBUG_H_ */

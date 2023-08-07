@@ -46,5 +46,6 @@ uint8_t* qdl_create_msg(qdl_dscr_t dscr, int cmd_type, unsigned int *msg_size, v
 void qdl_release_dev(qdl_dscr_t qdl_dscr);
 qdl_dscr_t qdl_init_dev(unsigned int segment, unsigned int bus, unsigned int device, unsigned int function,
 			unsigned int flags);
+qdl_status_t qdl_init_region(qdl_dscr_t dscr, qdl_region_t* region, bool free_resources);
 
 #endif /* QDL_I_H_ */

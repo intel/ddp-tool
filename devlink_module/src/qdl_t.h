@@ -58,11 +58,9 @@
 #define QDL_OROM_SREV_NAME               "fw.undi.minsrev"
 
 #ifndef bool
-typedef char bool;
+typedef enum {false, true} bool;
 #endif
 
-#define true   1
-#define false  0
 typedef struct {
 	uint16_t vendor_id;
 	uint16_t device_id;

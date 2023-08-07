@@ -226,8 +226,6 @@ uint8_t* _qdl_get_next_msg(uint8_t *buff, unsigned int buff_size, uint8_t *msg)
 	struct nlmsghdr *header = NULL;
 	uint8_t *next_msg = NULL;
 
-	QDL_DEBUGLOG_ENTERING;
-
 	if(msg == NULL) {
 		return buff;
 	}
@@ -1264,8 +1262,6 @@ uint8_t* _qdl_create_generic_msg(int id, int cmd_type, unsigned int *msg_size)
 {
 	uint8_t *msg = NULL;
 
-	QDL_DEBUGLOG_ENTERING;
-
 	*msg_size = _qdl_get_msg_size(cmd_type);
 	if(*msg_size == 0) {
 		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_get_msg_size", (int)*msg_size);
@@ -1408,15 +1404,13 @@ void _qdl_print_attr(FILE *fp, char *title, uint8_t *msg, uint32_t msg_size, str
  *
  * Prints formatted message.
  */
-void _qdl_print_msg(FILE *fp, uint8_t *buff, unsigned int buff_size)
+void _qdl_print_msg(FILE *fp, uint8_t *buff, uint32_t buff_size)
 {
 	struct nlmsghdr *header = NULL;
 	struct genlmsghdr *extra_header = NULL;
 	struct nlattr *attr = NULL;
 	uint8_t *msg = buff;
 	uint32_t msg_size = 0;
-
-	QDL_DEBUGLOG_ENTERING;
 
 	/* Validate input parameters */
 	if(fp == NULL || buff == NULL) {
@@ -1432,7 +1426,7 @@ void _qdl_print_msg(FILE *fp, uint8_t *buff, unsigned int buff_size)
 
 		/* Validate */
 		if(msg_size > (buff + buff_size - msg)) {
-			printf("Corrupted message\n");
+			printf("Corrupted message (msg_size: %d, left_buff_size: %d)\n", msg_size, (uint32_t)(buff + buff_size - msg));
 			break;
 		}
 		if(msg_size < NLMSG_HDRLEN) {

@@ -65,8 +65,6 @@ qdl_status_t _qdl_get_ctrl_msg_status(struct nlmsghdr *msg)
 	struct nlmsgerr *error = NULL;
 	qdl_status_t status = QDL_INVALID_PARAMS;
 
-	QDL_DEBUGLOG_ENTERING;
-
 	switch(msg->nlmsg_type) {
 	case NLMSG_NOOP:
 		status = QDL_SUCCESS;
@@ -178,57 +176,26 @@ uint8_t* _qdl_get_next_dev_msg(qdl_dscr_t dscr, uint8_t *buff, uint32_t buff_siz
 }
 
 /**
- * _qdl_init_region
+ * _qdl_del_region
  * @dscr: QDL descriptor
  * @region: Data defining region
  *
- * Initializes region resources.
+ * Deletes region resources.
  * Returns QDL_SUCCESS if function succeeds, otherwise error code.
  */
-qdl_status_t _qdl_init_region(qdl_dscr_t dscr, qdl_region_t* region)
+qdl_status_t _qdl_del_region(qdl_dscr_t dscr, qdl_region_t* region)
 {
-	uint8_t *rec_buff = NULL;
-	uint8_t *msg = NULL;
 	qdl_status_t status = QDL_SUCCESS;
-	uint32_t snapshot_id = 0;
-	unsigned int rec_buff_size = QDL_REC_BUFF_SIZE;
-	unsigned int msg_size = 0;
 
-	QDL_DEBUGLOG_ENTERING;
-
-	/* Check if snapshot is created for region */
-	rec_buff = malloc(rec_buff_size);
-	if(rec_buff == NULL) {
-		QDL_DEBUGLOG_FUNCTION_FAIL("malloc", 0);
-		return QDL_MEMORY_ERROR;
-	}
-	memset(rec_buff, 0, rec_buff_size);
-	status = qdl_receive_reply_msg(dscr, QDL_CMD_REGION_GET, region, rec_buff, &rec_buff_size);
+	status = qdl_receive_reply_msg(dscr, QDL_CMD_REGION_DEL, region, NULL, NULL);
 	if(status != QDL_SUCCESS) {
 		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
-		free(rec_buff);
 		return status;
 	}
+	region->snapshot_id = QDL_INVALID_SNAPSHOT_ID;
+	region->new_snapshot_id = false;
 
-	msg = _qdl_get_next_msg(rec_buff, rec_buff_size, NULL);
-	msg_size = rec_buff + rec_buff_size - msg;
-	status = _qdl_get_int_nattr_by_type(msg, msg_size, QDL_DEVLINK_ATTR_REGION_SNAPSHOT_ID, &snapshot_id);
-	if(status == QDL_SUCCESS) {
-		region->snapshot_id = snapshot_id;
-	} else {
-		/* No snapshot for region, create one */
-		status = qdl_receive_reply_msg(dscr, QDL_CMD_REGION_NEW, region, NULL, NULL);
-		if(status != QDL_SUCCESS) {
-			QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
-			region->snapshot_id = QDL_INVALID_SNAPSHOT_ID;
-			free(rec_buff);
-			return QDL_INIT_ERROR;
-		}
-		region->new_snapshot_id = true;
-	}
-	free(rec_buff);
-
-	return QDL_SUCCESS;
+	return status;
 }
 
 /**
@@ -244,8 +211,6 @@ qdl_status_t _qdl_init_dscr(qdl_dscr_t dscr, uint32_t flags)
 	qdl_struct *qdl_dscr = (qdl_struct*)dscr;
 	qdl_status_t status = QDL_SUCCESS;
 	unsigned int read_bytes = 0;
-
-	QDL_DEBUGLOG_ENTERING;
 
 	/* Read PCI config space */
 	read_bytes = _qdl_read_pci_config_space(dscr);
@@ -264,8 +229,7 @@ qdl_status_t _qdl_init_dscr(qdl_dscr_t dscr, uint32_t flags)
 	/* Initialize optional resources */
 	if(flags & QDL_INIT_NVM) {
 		qdl_dscr->flash_region.name = QDL_REGION_NAME_FLASH;
-		qdl_dscr->flash_region.snapshot_id = QDL_FLASH_SNAPSHOT_ID;
-		status = _qdl_init_region(dscr, &qdl_dscr->flash_region);
+		status = qdl_init_region(dscr, &qdl_dscr->flash_region, true);
 		if(status != QDL_SUCCESS) {
 			QDL_DEBUGLOG_FUNCTION_FAIL("_qdl_init_region (flash)", status);
 			return status;
@@ -273,8 +237,7 @@ qdl_status_t _qdl_init_dscr(qdl_dscr_t dscr, uint32_t flags)
 	}
 	if(flags & QDL_INIT_CAPS) {
 		qdl_dscr->caps_region.name = QDL_REGION_NAME_CAPS;
-		qdl_dscr->caps_region.snapshot_id = QDL_CAPS_SNAPSHOT_ID;
-		status = _qdl_init_region(dscr, &qdl_dscr->caps_region);
+		status = qdl_init_region(dscr, &qdl_dscr->caps_region, true);
 		if(status != QDL_SUCCESS) {
 			QDL_DEBUGLOG_FUNCTION_FAIL("_qdl_init_region (caps)", status);
 			return status;
@@ -301,8 +264,6 @@ qdl_status_t _qdl_read_msg_family_id(qdl_dscr_t dscr, uint32_t *family_id)
 	unsigned int send_buff_size = 0;
 	unsigned int rec_buff_size = 0;
 	unsigned int msg_size = 0;
-
-	QDL_DEBUGLOG_ENTERING;
 
 	/* Create message */
 	send_buff = _qdl_create_generic_msg(GENL_ID_CTRL, CTRL_CMD_GETFAMILY, &send_buff_size);
@@ -363,8 +324,6 @@ qdl_status_t _qdl_is_dev_supported(qdl_dscr_t dscr, bool *support)
 	uint8_t *msg = NULL;
 	qdl_status_t status = QDL_SUCCESS;
 	unsigned int rec_buff_size = QDL_REC_BUFF_SIZE;
-
-	QDL_DEBUGLOG_ENTERING;
 
 	/* Get list of supported devices */
 	rec_buff = malloc(rec_buff_size);
@@ -495,8 +454,6 @@ qdl_status_t _qdl_receive_msg(qdl_dscr_t dscr, uint8_t *rec_msg_buff, unsigned i
 	struct iovec iov;
 	qdl_struct *dscr_data = (qdl_struct*)dscr;
 	int return_value = 0;
-
-	QDL_DEBUGLOG_ENTERING;
 
 	/* Validate input parameters */
 	if(dscr == NULL || rec_msg_buff == NULL || rec_msg_size == NULL) {
@@ -1073,23 +1030,16 @@ void qdl_release_dev(qdl_dscr_t dscr)
 	if(dscr_data != NULL) {
 		/* Delete region snapshot ID created by QDL */
 		if(dscr_data->flash_region.new_snapshot_id == true) {
-			status = qdl_receive_reply_msg(dscr, QDL_CMD_REGION_DEL, &dscr_data->flash_region,
-						       NULL, NULL);
+			status = _qdl_del_region(dscr, &dscr_data->flash_region);
 			if(status != QDL_SUCCESS) {
-				QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
+				QDL_DEBUGLOG_FUNCTION_FAIL("_qdl_del_region(flash)", status);
 			}
-			dscr_data->flash_region.snapshot_id = QDL_INVALID_SNAPSHOT_ID;
-			dscr_data->flash_region.new_snapshot_id = false;
 		}
 		if(dscr_data->caps_region.new_snapshot_id == true) {
-			status = qdl_receive_reply_msg(dscr, QDL_CMD_REGION_DEL, &dscr_data->caps_region,
-						       NULL, /* buffer for reply data */
-						       NULL  /* reply buffer size */);
+			status = _qdl_del_region(dscr, &dscr_data->caps_region);
 			if(status != QDL_SUCCESS) {
-				QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
+				QDL_DEBUGLOG_FUNCTION_FAIL("_qdl_del_region(caps)", status);
 			}
-			dscr_data->caps_region.snapshot_id = QDL_INVALID_SNAPSHOT_ID;
-			dscr_data->caps_region.new_snapshot_id = false;
 		}
 
 		/* Release socket */
@@ -1181,3 +1131,81 @@ qdl_dscr_t qdl_init_dev(unsigned int segment, unsigned int bus, unsigned int dev
 	return dscr;
 }
 
+/**
+ * _qdl_init_region
+ * @dscr: QDL descriptor
+ * @region: Data defining region
+ * @free_resource: indicate if delete region if it is already created
+ *
+ * Initializes region resources.
+ * Returns QDL_SUCCESS if function succeeds, otherwise error code.
+ */
+qdl_status_t qdl_init_region(qdl_dscr_t dscr, qdl_region_t* region, bool free_resources)
+{
+	qdl_region_t del_region;
+	uint8_t *rec_buff = NULL;
+	uint8_t *msg = NULL;
+	qdl_status_t status = QDL_SUCCESS;
+	uint32_t snapshot_id = 0;
+	unsigned int rec_buff_size = QDL_REC_BUFF_SIZE;
+	unsigned int msg_size = 0;
+
+	QDL_DEBUGLOG_ENTERING;
+
+	/* Initialize parameters */
+	memset(&del_region, 0, sizeof(del_region));
+
+	/* Check if snapshot is created */
+	rec_buff = malloc(rec_buff_size);
+	if(rec_buff == NULL) {
+		QDL_DEBUGLOG_FUNCTION_FAIL("malloc", 0);
+		return QDL_MEMORY_ERROR;
+	}
+	memset(rec_buff, 0, rec_buff_size);
+	status = qdl_receive_reply_msg(dscr, QDL_CMD_REGION_GET, region, rec_buff, &rec_buff_size);
+	if(status != QDL_SUCCESS) {
+		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
+		free(rec_buff);
+		return status;
+	}
+
+	msg = _qdl_get_next_msg(rec_buff, rec_buff_size, NULL);
+	msg_size = rec_buff + rec_buff_size - msg;
+	status = _qdl_get_int_nattr_by_type(msg, msg_size, QDL_DEVLINK_ATTR_REGION_SNAPSHOT_ID, &snapshot_id);
+	if(status == QDL_SUCCESS) {
+		/* Delete snapshot if it is requested. */
+		if(free_resources) {
+			if(region->new_snapshot_id == false)
+			{
+				QDL_DEBUGLOG_ERROR_MSG("Warning: Deleting region not allocated by QDL.");
+			}
+			del_region = *region;
+			del_region.snapshot_id = snapshot_id;
+			status = _qdl_del_region(dscr, &del_region);
+			if(status != QDL_SUCCESS) {
+				QDL_DEBUGLOG_FUNCTION_FAIL("_qdl_del_region", status);
+				free(rec_buff);
+				return status;
+			}
+		}
+	}
+	free(rec_buff);
+
+	/* Create new snapshot */
+	if(strcmp(region->name, QDL_REGION_NAME_FLASH) == 0) {
+		region->snapshot_id = QDL_FLASH_SNAPSHOT_ID;
+	} else if(strcmp(region->name, QDL_REGION_NAME_CAPS) == 0) {
+		region->snapshot_id = QDL_CAPS_SNAPSHOT_ID;
+	} else {
+		return QDL_INVALID_PARAMS;
+	}
+	status = qdl_receive_reply_msg(dscr, QDL_CMD_REGION_NEW, region, NULL, NULL);
+	if(status != QDL_SUCCESS) {
+		QDL_DEBUGLOG_FUNCTION_FAIL("qdl_receive_reply_msg", status);
+		region->snapshot_id = QDL_INVALID_SNAPSHOT_ID;
+		return QDL_INIT_ERROR;
+	}
+	region->new_snapshot_id = true;
+
+	return QDL_SUCCESS;
+}
