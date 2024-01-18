@@ -1243,7 +1243,7 @@ uint8_t* _qdl_put_msg_header(uint8_t *msg, uint16_t type, uint16_t flags)
 	header->nlmsg_len = NLA_ALIGN(sizeof(*header));
 	header->nlmsg_type = type;
 	header->nlmsg_flags = flags;
-	header->nlmsg_seq = time(NULL);
+	header->nlmsg_seq = (uint64_t)time(NULL);		/* time_t is 64-bit wide from GCC 11, casting fixes Coverity hits */
 	header->nlmsg_pid = 0;
 
 	return msg;

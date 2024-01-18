@@ -31,8 +31,9 @@
 #include <stdio.h>
 
 /* Initialization flags */
-#define QDL_INIT_NVM                     (1 << 0)
-#define QDL_INIT_CAPS                    (1 << 1)
+#define QDL_INIT_NET_INTERFACE           (1 << 0)
+#define QDL_INIT_NVM                     (1 << 1)
+#define QDL_INIT_CAPS                    (1 << 2)
 
 /* Message const */
 #define QDL_REC_BUFF_SIZE                8192L   /* Buffer size for received message */

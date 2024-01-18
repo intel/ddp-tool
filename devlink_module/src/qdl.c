@@ -39,6 +39,10 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#if !defined(SOL_NETLINK) || !defined(NETLINK_EXT_ACK)
+#define QDL_NO_EXT_ACK
+#endif /* !SOL_NETLINK || !NETLINK_EXT_ACK */
+
 #define QDL_DEV_LOCATION_SIZE                         20
 
 #define QDL_INVALID_SOCKET                            -1
@@ -220,10 +224,12 @@ qdl_status_t _qdl_init_dscr(qdl_dscr_t dscr, uint32_t flags)
 	}
 
 	/* Get net interface name */
-	status = _qdl_get_pci_net_interface(dscr, qdl_dscr->net_interface, QDL_DRIVER_NET_INTERFACE_LENGTH);
-	if(status != QDL_SUCCESS) {
-		QDL_DEBUGLOG_FUNCTION_FAIL("_qdl_get_pci_net_interface", status);
-		return status;
+	if(flags & QDL_INIT_NET_INTERFACE) {
+	    status = _qdl_get_pci_net_interface(dscr, qdl_dscr->net_interface, QDL_DRIVER_NET_INTERFACE_LENGTH);
+	    if(status != QDL_SUCCESS) {
+	        QDL_DEBUGLOG_FUNCTION_FAIL("_qdl_get_pci_net_interface", status);
+	        return status;
+	    }
 	}
 
 	/* Initialize optional resources */

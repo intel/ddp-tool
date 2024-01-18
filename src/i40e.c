@@ -270,7 +270,10 @@ _i40e_discovery_device(adapter_t* adapter)
     do
     {
         if(adapter->is_usable == FALSE)
+        {
+            status = DDP_CANNOT_COMMUNICATE_ADAPTER;
             break; /* tool cannot read below data and need to copy them from other function */
+        }
 
         status = _i40e_check_fw_version(adapter, &is_fw_supported);
         if(status != DDP_SUCCESS)

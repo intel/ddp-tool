@@ -204,12 +204,12 @@ _ice_acquire_adminq(adapter_t* adapter)
                (timestamp_delta >= ICE_TOOLSQ_EXPIRED_STAMP_SPACING_LO &&
                 timestamp_delta <= ICE_TOOLSQ_EXPIRED_STAMP_SPACING_HI))
             {
-                debug_ddp_print("AQ lock failed, it was locked %d seconds ago.\n", timestamp_delta);
+                debug_ddp_print("AQ lock failed, it was locked %ld seconds ago.\n", timestamp_delta);
                 status = DDP_CANNOT_COMMUNICATE_ADAPTER;
                 break;
             }
 
-            debug_ddp_print("AQ was locked %d seconds ago, lock is considered timed-out.\n", timestamp_delta);
+            debug_ddp_print("AQ was locked %ld seconds ago, lock is considered timed-out.\n", timestamp_delta);
         }
 
         /* lock adminQ by CSR */
@@ -674,6 +674,7 @@ _ice_get_devlink_profile_info(adapter_t* adapter, ddp_descriptor_t* dscr)
         adapter->profile_info.section_size = 1;
     } while (0);
 
+    free_memory(msg);
     free_memory(rec_msg);
 
     return status;
@@ -715,6 +716,10 @@ _ice_get_adapter_descriptor(adapter_t* adapter, ddp_descriptor_t* dscr)
             break;
         }
 
+        /* Check if name for Ethernet interface is available */
+        if(adapter->is_usable == FALSE)
+            break;
+
         aq_descriptor = malloc_sec(sizeof(adminq_desc_t));
         if(aq_descriptor == NULL)
         {
@@ -752,16 +757,14 @@ _ice_discovery_device(adapter_t* adapter)
 
     do
     {
-        if(adapter->is_usable == FALSE)
-            break; /* tool cannot read below data and need to copy them from other function */
-
         _ice_get_adapter_descriptor(adapter, &descriptor);
-        if(descriptor.descriptor_type == descriptor_none)
+        if(descriptor.descriptor == NULL)
         {
-            debug_ddp_print("Cannot create interface descriptor\n");
+            status = DDP_CANNOT_COMMUNICATE_ADAPTER;
             break;
         }
-        else if(descriptor.descriptor_type == descriptor_ioctl)
+
+        if(descriptor.descriptor_type == descriptor_ioctl)
         {
             status = _ice_check_fw_version(adapter, &is_fw_supported, &descriptor);
             if(status != DDP_SUCCESS)
@@ -788,9 +791,13 @@ _ice_discovery_device(adapter_t* adapter)
                            strlen(NO_PROFILE));
             }
         }
-        else /* descriptor_devlink */
+        else if(descriptor.descriptor_type == descriptor_devlink)
         {
             status = _ice_get_devlink_profile_info(adapter, &descriptor);
+        }
+        else
+        {
+            debug_ddp_print("Cannot create interface descriptor\n");
         }
     } while(0);
 

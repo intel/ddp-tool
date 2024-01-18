@@ -272,7 +272,7 @@ print_table_adapter(adapter_t* adapter, FILE* stream)
 
     device_index++;
     fprintf(stream,
-            "%03d) %hX  %04hX:%02hX:%02hX.%01hX %-15s %-8s %-12s %-30s\n",
+            "%03d) %04hX  %04hX:%02hX:%02hX.%01hX %-15s %-8s %-12s %-30s\n",
             device_index,
             adapter->device_id,
             adapter->location.segment,

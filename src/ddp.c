@@ -155,7 +155,7 @@ get_brading_string_from_table(adapter_t* adapter, match_level* match_level)
     uint16_t             generic_id             = 0xFFFF;
     bool                 is_supported           = FALSE;
 
-    for(++adapter_family; adapter_family < family_last; adapter_family++)
+    for(adapter_family = family_40G; adapter_family < family_last; adapter_family++)
     {
         switch(adapter_family)
         {
@@ -167,10 +167,6 @@ get_brading_string_from_table(adapter_t* adapter, match_level* match_level)
             supported_devices = ice_supported_devices;
             supported_devices_size = ice_supported_devices_size;
             break;
-        case family_none:
-            /* fall-through */
-        case family_last:
-            /* fall-through */
         default:
             supported_devices = NULL;
             supported_devices_size = 0;
@@ -249,6 +245,7 @@ is_supported_driver(adapter_t* adapter)
     struct stat      node_attributes                         = {0};
     adapter_family_t adapter_family                          = family_none;
     uint32_t         i                                       = 0;
+    int              stat_result                             = 0;
     bool             unsupported_device                      = FALSE;
     bool             is_supported                            = FALSE;
 
@@ -271,7 +268,7 @@ is_supported_driver(adapter_t* adapter)
             break;
         }
 
-        for(++adapter_family; adapter_family < family_last; adapter_family++)
+        for(adapter_family = family_40G; adapter_family < family_last; adapter_family++)
         {
             switch(adapter_family)
             {
@@ -287,17 +284,8 @@ is_supported_driver(adapter_t* adapter)
             case family_100G_SWX:
                 strcpy_sec(driver_name, DDP_MAX_NAME_LENGTH, DDP_DRIVER_NAME_100G_SWX, strlen(DDP_DRIVER_NAME_100G_SWX));
                 break;
-            case family_none:
-                /* fall-through */
-            case family_last:
-                /* fall-through */
             default:
                 memset(driver_name, '\0', sizeof(char)*DDP_MAX_NAME_LENGTH);
-                break;
-            }
-
-            if (adapter_family == family_none || adapter_family == family_last)
-            {
                 break;
             }
 
@@ -313,17 +301,15 @@ is_supported_driver(adapter_t* adapter)
                      adapter->location.function);
 
             /* use stat() instead of lstat() to follow the symlink from ../drivers into ../devices */
-            stat(path_to_pci_device, &node_attributes);
-
-            if (S_ISDIR(node_attributes.st_mode) == TRUE)
+            stat_result = stat(path_to_pci_device, &node_attributes);
+            if(stat_result == 0)
             {
-                adapter->adapter_family = adapter_family;
-                is_supported = TRUE;
-                break;
-            }
-            else
-            {
-                continue;
+                if (S_ISDIR(node_attributes.st_mode) == TRUE)
+                {
+                    adapter->adapter_family = adapter_family;
+                    is_supported = TRUE;
+                    break;
+                }
             }
         }
     } while(0);
@@ -416,6 +402,8 @@ get_connection_name(adapter_t* adapter)
         status = DDP_SUCCESS;
         break;
     }
+
+    closedir(dir);
 
     return status;
 }
@@ -811,7 +799,8 @@ get_nvm_version(adapter_t* adapter, nvm_version_t* nvm_version)
 ddp_status_t
 initialize_tool()
 {
-    ddp_status_t  ddp_status = DDP_SUCCESS;
+    ddp_status_t ddp_status          = DDP_SUCCESS;
+    ddp_status_t ddp_function_status = DDP_SUCCESS;
 
     do
     {
@@ -851,34 +840,35 @@ initialize_tool()
         }
 
         /* verify if 40G driver exists and supports DDP */
-        ddp_status = i40e_verify_driver();
-        if(ddp_status != DDP_SUCCESS)
+        ddp_function_status = i40e_verify_driver();
+        if(ddp_function_status != DDP_SUCCESS)
         {
             debug_ddp_print("Cannot find i40e base driver!\n");
             ddp_status = DDP_SUCCESS;
         }
 
         /* verify if 100G driver exists - all ice drivers are expected to support DDP */
-        ddp_status = ice_verify_driver();
-        if(ddp_status != DDP_SUCCESS)
+        ddp_function_status = ice_verify_driver();
+        if(ddp_function_status != DDP_SUCCESS)
         {
             debug_ddp_print("Cannot find ice base driver!\n");
             ddp_status = DDP_SUCCESS;
         }
 
-        ddp_status = ice_sw_verify_driver();
-        if(ddp_status != DDP_SUCCESS)
+        ddp_function_status = ice_sw_verify_driver();
+        if(ddp_function_status != DDP_SUCCESS)
         {
             debug_ddp_print("Cannot find ice_sw base driver!\n");
             ddp_status = DDP_SUCCESS;
         }
-    } while(0);
-        ddp_status = ice_swx_verify_driver();
-        if(ddp_status != DDP_SUCCESS)
+
+        ddp_function_status = ice_swx_verify_driver();
+        if(ddp_function_status != DDP_SUCCESS)
         {
             debug_ddp_print("Cannot find ice_swx base driver!\n");
             ddp_status = DDP_SUCCESS;
         }
+    } while(0);
 
     if(check_command_parameter(DDP_PARSE_FILE_COMMAND_PARAMETER_BIT) == FALSE && /* drivers are not necessary in parsing binary file mode */
        Global_driver_os_ctx[family_100G_SW].driver_available == FALSE &&
@@ -1071,7 +1061,7 @@ generate_dummy_adapter_list(list_t* adapter_list)
             break;
         }
 
-        status = add_node_data(adapter_list, (void*) dummy_adapter, sizeof dummy_adapter);
+        status = add_node_data(adapter_list, (void*) dummy_adapter, sizeof(adapter_t));
         if(status != DDP_SUCCESS)
         {
             break;
@@ -1194,11 +1184,7 @@ generate_adapter_list(list_t* adapter_list, char* interface_key)
             else
             {
                 /* if the driver did not write connection name to sysfs
-                 * we won't be able to communicate with that function */
-                if(status == DDP_SUCCESS)
-                {
-                    status = DDP_CANNOT_COMMUNICATE_ADAPTER;
-                }
+                 * we cannot use ioctl to communicate with that function */
                 current_device.is_usable = FALSE;
                 debug_ddp_print("get_connection_name error: 0x%X\n", function_status);
                 /* the adapter must be added to the adapter list, so the tool cannot skip this iteration of the loop */
@@ -1247,7 +1233,7 @@ generate_adapter_list(list_t* adapter_list, char* interface_key)
                             adapter->location.bus,
                             adapter->location.device,
                             adapter->location.function);
-            function_status = add_node_data(adapter_list, (void*) adapter, sizeof adapter);
+            function_status = add_node_data(adapter_list, (void*) adapter, sizeof(adapter_t));
             if(function_status != DDP_SUCCESS)
             {
                 if(status == DDP_SUCCESS)
