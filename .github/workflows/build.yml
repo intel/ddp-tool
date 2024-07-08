@@ -16,7 +16,7 @@ jobs:
     - name: make
       run: make
       with:
-      name: ddptool
-      path: .
-      retention-days: 5
+        name: ddptool
+        path: .
+        retention-days: 5
     
