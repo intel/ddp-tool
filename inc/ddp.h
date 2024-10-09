@@ -106,11 +106,11 @@ typedef struct ifreq ifreq_t;
 #define IOCTL_EXECUTE_COMMAND             0xF << 8
 #define IOCTL_REGISTER_ACCESS_COMMAND     0x0100
 
-#define DDP_COPYRIGHT_DATE                2023
+#define DDP_COPYRIGHT_DATE                2024
 
 #define DDP_MAJOR_VERSION                 1
 #define DDP_MINOR_VERSION                 0
-#define DDP_BUILD_VERSION                 32
+#define DDP_BUILD_VERSION                 34
 #define DDP_FIX_VERSION                   0
 
 #define DDP_MIN_BASE_DRIVER_VERSION_MAJOR 2
@@ -150,6 +150,13 @@ typedef struct ifreq ifreq_t;
 #define NO_PROFILE     "No profile loaded"
 #define UNSUPPORTED_FW "Unsupported FW version"
 
+/* Unused variable */
+#ifdef linux
+  #define UNUSED __attribute__((unused))
+#else
+  #define UNUSED
+#endif
+
 void
 free_memory(void* pointer);
 
@@ -166,7 +173,7 @@ char*
 get_error_message(ddp_status_value_t status);
 
 ddp_status_t
-execute_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor, uint16_t descriptor_size, uint8_t* cmd_buffer);
+execute_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor, uint16_t descriptor_size);
 
 ddp_status_t
 write_register(adapter_t* adapter, uint32_t reg_address, uint32_t byte_number, void* input_register);
