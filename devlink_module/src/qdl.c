@@ -735,7 +735,7 @@ qdl_status_t qdl_send_msg(qdl_dscr_t dscr, uint8_t *msg, unsigned int msg_size)
 	socket_addr.nl_pad = 0;
 	return_value = sendto(dscr_data->socket, msg, msg_size, 0, (struct sockaddr*)&socket_addr,
 			sizeof(socket_addr));
-	if(return_value == -1 || return_value != msg_size) {
+	if(return_value == -1 || return_value != (int)(msg_size)) {
 		QDL_DEBUGLOG_FUNCTION_FAIL("sendto", return_value);
 		return QDL_SEND_MSG_ERROR;
 	}

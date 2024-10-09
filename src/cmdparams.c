@@ -114,7 +114,7 @@ validate_command_line_parameters(int argc, char** argv)
     uint32_t     parameter_length   = 0;
     bool         is_parameter_found = FALSE;
 
-    for(parameter_index = 1; parameter_index < argc; parameter_index++)
+    for(parameter_index = 1; (int)parameter_index < argc; parameter_index++)
     {
         /* Prepare variables for the next iteration */
         current_parameter  = argv[parameter_index];

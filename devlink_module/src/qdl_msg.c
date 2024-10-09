@@ -1351,7 +1351,6 @@ void _qdl_print_attr(FILE *fp, char *title, uint8_t *msg, uint32_t msg_size, str
 	struct nlattr *nattr = NULL;
 	uint8_t *data = NULL;
 	unsigned int i = 0;
-
 	data = _qdl_get_attr_data_addr(msg, msg_size, (uint8_t*)attr);
 	fprintf(fp, "-------- %11s ----\n", title);
 	fprintf(fp, "len:     0x%04X (%d)\n", attr->nla_len, attr->nla_len);
@@ -1368,9 +1367,9 @@ void _qdl_print_attr(FILE *fp, char *title, uint8_t *msg, uint32_t msg_size, str
 			fprintf(fp, "%" PRIu64 " (%" PRIx64 ")\n", *((uint64_t*)data), *((uint64_t*)data));
 		} else if(_qdl_is_string_attr(attr, header->nlmsg_type)) {
 			fprintf(fp, "'%s'\n", (char*)data);
-		} else if(_qdl_is_binary_attr(attr, header->nlmsg_type) ||
-			  _qdl_is_dynamic_attr(attr, header->nlmsg_type)) {
-			for(i = 0; i < attr->nla_len - 4; i++) {
+		} else if((_qdl_is_binary_attr(attr, header->nlmsg_type) ||
+			  _qdl_is_dynamic_attr(attr, header->nlmsg_type)) && ((attr->nla_len - 4) >= 0)) {
+			for(i = 0; i < (__u16)(attr->nla_len - 4); i++) {
 				if(i != 0 && i % 16 == 0) {
 					fprintf(fp, "\n         ");
 				}
@@ -1385,8 +1384,8 @@ void _qdl_print_attr(FILE *fp, char *title, uint8_t *msg, uint32_t msg_size, str
 				nattr = (struct nlattr*)_qdl_get_next_nattr_addr(
 						(uint8_t*)attr, (uint8_t*)nattr);
 			}
-		} else {
-			for(i = 0; i < attr->nla_len - 4; i++) {
+		} else if((attr->nla_len - 4) >= 0) {
+			for(i = 0; i < (__u16)(attr->nla_len - 4); i++) {
 				fprintf(fp, "%02X ", data[i]);
 			}
 			fprintf(fp, "(unknown attr type)\n");

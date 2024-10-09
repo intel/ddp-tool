@@ -215,7 +215,6 @@ ddp_status_t
 _i40e_get_ddp_profile_list(adapter_t* adapter)
 {
     adminq_desc_t*     descriptor       = NULL;
-    uint8_t*           data_buffer      = NULL;
     ddp_status_t       status           = DDP_SUCCESS;
     uint16_t           data_buffer_size = DDP_ADMINQ_WRITEBACK_SIZE;
     uint16_t           descriptor_size  = sizeof(adminq_desc_t) + DDP_ADMINQ_WRITEBACK_SIZE;
@@ -236,7 +235,7 @@ _i40e_get_ddp_profile_list(adapter_t* adapter)
         descriptor->flags    = I40E_ADMINQ_FLAG_BUF;
         descriptor->datalen  = data_buffer_size;
 
-        status = execute_adminq_command(adapter, descriptor, descriptor_size, data_buffer);
+        status = execute_adminq_command(adapter, descriptor, descriptor_size);
         if(status != DDP_SUCCESS)
         {
             status = DDP_AQ_COMMAND_FAIL;

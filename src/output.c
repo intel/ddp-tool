@@ -134,7 +134,7 @@ determine_output_stream(FILE** file, char* file_name)
 }
 
 ddp_status_t
-generate_table_for_file(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name)
+generate_table_for_file(list_t* adapter_list, ddp_status_value_t tool_status, UNUSED char* file_name)
 {
     char         version_string[DDP_VERSION_LENGTH];
     char         track_id_string[DDP_TRACKID_LENGTH];
@@ -201,7 +201,7 @@ generate_table_for_file(list_t* adapter_list, ddp_status_value_t tool_status, ch
 }
 
 ddp_status_t
-generate_table(list_t* adapter_list, ddp_status_value_t tool_status, char* file_name)
+generate_table(list_t* adapter_list, UNUSED ddp_status_value_t tool_status, UNUSED char* file_name)
 {
     node_t*      node    = NULL;
     adapter_t*   adapter = NULL;

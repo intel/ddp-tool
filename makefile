@@ -26,7 +26,7 @@
 CC=gcc
 
 # Add general SDLe flags for secure compilation
-CFLAGS= -fstack-protector -fPIE -fPIC -Wformat -Wformat-security -Wall
+CFLAGS= -fstack-protector -fPIE -fPIC -Wformat -Wformat-security -Wall -Wextra -Werror=format-security -fstack-protector-strong
 
 # Add flags preventing compiler from optimizing security checks
 CFLAGS  += -fno-delete-null-pointer-checks -fno-strict-overflow -fwrapv -DQDL_NO_EXT_ACK

@@ -485,7 +485,7 @@ get_data_by_basedriver(adapter_t* adapter, ioctl_structure_t* ioctl_structure)
 }
 
 ddp_status_t
-execute_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor, uint16_t descriptor_size, uint8_t* cmd_buffer)
+execute_adminq_command(adapter_t* adapter, adminq_desc_t* descriptor, uint16_t descriptor_size)
 {
     ioctl_structure_t* ioctl_data  = NULL;
     ddp_status_t       status      = DDP_SUCCESS;
@@ -1084,7 +1084,7 @@ generate_adapter_list(list_t* adapter_list, char* interface_key)
     int32_t         items               = 0;
     int32_t         i                   = 0;
     int             compare_result      = -1;
-    int             family              = family_none;
+    unsigned int    family              = family_none;
     bool            is_vf               = FALSE;
 
     MEMINIT(&current_device);

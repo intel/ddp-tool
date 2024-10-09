@@ -1,3 +1,3 @@
 # ddp-tool
 
-*lastest version:* **1.0.32.0**
+*lastest version:* **1.0.34.0**
