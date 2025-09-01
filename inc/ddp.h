@@ -109,11 +109,11 @@ typedef struct ifreq ifreq_t;
 #define IOCTL_EXECUTE_COMMAND             0xF << 8
 #define IOCTL_REGISTER_ACCESS_COMMAND     0x0100
 
-#define DDP_COPYRIGHT_DATE                2024
+#define DDP_COPYRIGHT_DATE                2025
 
 #define DDP_MAJOR_VERSION                 1
 #define DDP_MINOR_VERSION                 0
-#define DDP_BUILD_VERSION                 36
+#define DDP_BUILD_VERSION                 37
 #define DDP_FIX_VERSION                   0
 
 #define DDP_MIN_BASE_DRIVER_VERSION_MAJOR 2
