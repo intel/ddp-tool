@@ -125,7 +125,7 @@ is_virtual_function(adapter_t* adapter)
     return is_virtual;
 }
 
-/* Function get_brading_string_from_table() find the branding string for a 
+/* Function get_brading_string_from_table() find the branding string for a
  * given device in internal table.
  *
  * The recognize is done by matching device's 4-partID (VendorID, DeviceID,
@@ -234,10 +234,10 @@ get_brading_string_from_table(adapter_t* adapter, match_level* match_level)
 
 /* Function verifies if there is a supported virtual functions driver attached
  * to that specific device.
- * 
+ *
  * Parameters:
  * [in,out] adapter      Handle to current adapter
- * 
+ *
  * Returns: TRUE if virtual functions driver is supported and FALSE if it is not.
  */
 bool
@@ -357,10 +357,10 @@ is_supported_vf_driver(adapter_t* adapter)
  * ice - all devices support ddp profiles.
  * i40e - Fortville with appropriate FW support ddp profiles (FW check required).
  * i40e - non-supported i40e devices are filtered using a device id list
- * 
+ *
  * Parameters:
  * [in,out] adapter      Handle to current adapter
- * 
+ *
  * Returns: TRUE if driver is supported and FALSE if it is not.
  */
 bool
@@ -1223,175 +1223,187 @@ generate_adapter_list(list_t* adapter_list, char* interface_key)
     MEMINIT(location_from_dir);
 
     items = scandir(PATH_TO_SYSFS_PCI, &name_list, 0, alphasort);
-
-    for(i = 0; i < items; MEMINIT(&current_device), i++)
+    if(items < 0)
     {
-        /* Get adapter PCI location */
-        sscanf(name_list[i]->d_name,
-               "%04hx:%02hx:%02hx.%hx",
-               &current_device.location.segment,
-               &current_device.location.bus,
-               &current_device.location.device,
-               &current_device.location.function);
-
-        function_status = get_device_identifier(&current_device);
-        if(function_status != DDP_SUCCESS && status == DDP_SUCCESS)
+        status = DDP_CANNOT_READ_DEVICE_DATA;
+    }
+    else
+    {
+        for(i = 0; i < items; MEMINIT(&current_device), i++)
         {
-            debug_ddp_print("get_device_identifier error: 0x%X\n", function_status);
-            status = function_status;
-            continue;
-        }
+            /* Get adapter PCI location */
+            sscanf(name_list[i]->d_name,
+                "%04hx:%02hx:%02hx.%hx",
+                &current_device.location.segment,
+                &current_device.location.bus,
+                &current_device.location.device,
+                &current_device.location.function);
 
-        if(is_device_supported(&current_device) == FALSE)
-        {
-            continue;
-        }
-        debug_ddp_print("Device location: %s\n", name_list[i]->d_name);
-
-        /* if the device is supported - verify if the associated driver is available/supported */
-        for(family = family_none; family < family_last; family++)
-        {
-            if(current_device.adapter_family == family)
+            function_status = get_device_identifier(&current_device);
+            if(function_status != DDP_SUCCESS && status == DDP_SUCCESS)
             {
-                if(Global_driver_os_ctx[family].driver_available == FALSE)
+                debug_ddp_print("get_device_identifier error: 0x%X\n", function_status);
+                status = function_status;
+                continue;
+            }
+
+            if(is_device_supported(&current_device) == FALSE)
+            {
+                continue;
+            }
+            debug_ddp_print("Device location: %s\n", name_list[i]->d_name);
+
+            /* if the device is supported - verify if the associated driver is available/supported */
+            for(family = family_none; family < family_last; family++)
+            {
+                if(current_device.adapter_family == family)
                 {
-                    function_status = DDP_NO_BASE_DRIVER;
-                    debug_ddp_print("No base driver.\n");
-                    break;
+                    if(Global_driver_os_ctx[family].driver_available == FALSE)
+                    {
+                        function_status = DDP_NO_BASE_DRIVER;
+                        debug_ddp_print("No base driver.\n");
+                        break;
+                    }
+                    if(Global_driver_os_ctx[family].driver_supported == FALSE)
+                    {
+                        function_status = DDP_UNSUPPORTED_BASE_DRIVER;
+                        debug_ddp_print("Base driver not supported.\n");
+                        break;
+                    }
                 }
-                if(Global_driver_os_ctx[family].driver_supported == FALSE)
-                {
-                    function_status = DDP_UNSUPPORTED_BASE_DRIVER;
-                    debug_ddp_print("Base driver not supported.\n");
-                    break;
-                }
             }
-        }
-        if(function_status != DDP_SUCCESS && status == DDP_SUCCESS)
-        {
-            status = function_status;
-            continue;
-        }
-
-        /* Initialize created node */
-        function_status = initialize_adapter(&current_device);
-        if(function_status != DDP_SUCCESS && status == DDP_SUCCESS)
-        {
-            status = DDP_CANNOT_COMMUNICATE_ADAPTER;
-            continue;
-        }
-
-        is_vf = is_virtual_function(&current_device);
-        if(is_vf == TRUE)
-        {
-            if(check_command_parameter(DDP_ALL_ADAPTERS_PARAMETER_BIT) == FALSE)
-            {
-                /* only with parameter -a tool works with virtual functions*/
-                continue;
-            }
-
-            current_device.is_virtual_function = TRUE;
-            current_device.is_usable = FALSE; /* virtual function cannot be use for communicate with base driver */
-
-            if(last_physical_device.is_usable == TRUE)
-            {
-                strcpy_sec(current_device.pf_connection_name,
-                            sizeof(current_device.pf_connection_name),
-                            last_physical_device.connection_name,
-                            strlen(last_physical_device.connection_name)); /* need for getting data by base driver */
-                memcpy_sec(&current_device.pf_location,
-                            sizeof(current_device.pf_location),
-                            &last_physical_device.location,
-                            sizeof(last_physical_device.location));
-                current_device.pf_device_id = last_physical_device.device_id;
-                current_device.is_usable = TRUE; /* it's true if we have a connection name from physical function */
-            }
-        }
-
-        function_status = get_connection_name(&current_device);
-        if(function_status == DDP_SUCCESS)
-        {
-            current_device.is_usable = TRUE;
-        }
-        else
-        {
-            /* if the driver did not write connection name to sysfs
-             * we cannot use ioctl to communicate with that function */
-            current_device.is_usable = FALSE;
-            debug_ddp_print("get_connection_name error: 0x%X\n", function_status);
-            /* the adapter must be added to the adapter list, so the tool cannot skip this iteration of the loop */
-        }
-
-        if(is_vf == FALSE && current_device.is_usable == TRUE)
-        {
-            memcpy_sec(&last_physical_device, sizeof(adapter_t), &current_device, sizeof(adapter_t));
-        }
-
-        if(check_command_parameter(DDP_LOCATION_COMMAND_PARAMETER_BIT))
-        {
-            memcpy_sec(location_from_dir,
-                        PCI_LOCATION_STRING_SIZE,
-                        name_list[i]->d_name,
-                        PCI_LOCATION_STRING_SIZE);
-            compare_result = strncmp(interface_key, location_from_dir, PCI_LOCATION_STRING_SIZE);
-            if(compare_result != 0)
-            {
-                continue;
-            }
-        }
-        else if(check_command_parameter(DDP_INTERFACE_COMMAND_PARAMETER_BIT) &&
-                strlen(current_device.connection_name))
-        {
-            /* we need PF for VF */
-            compare_result = strcmp(interface_key, current_device.connection_name);
-            if(compare_result != 0)
-            {
-                continue;
-            }
-        }
-
-        adapter = malloc_sec(sizeof(adapter_t));
-        if(adapter == NULL)
-        {
-            status = DDP_ALLOCATE_MEMORY_FAIL;
-            break;
-        }
-        memcpy_sec(adapter, sizeof(adapter_t), &current_device, sizeof(current_device));
-
-        /* Add node to the list */
-        debug_ddp_print("Adding to list device: 0x%X:0x%X:0x%X.0x%X\n",
-                        adapter->location.segment,
-                        adapter->location.bus,
-                        adapter->location.device,
-                        adapter->location.function);
-        function_status = add_node_data(adapter_list, (void*)adapter, sizeof(adapter_t));
-        if(function_status != DDP_SUCCESS)
-        {
-            if(status == DDP_SUCCESS)
+            if(function_status != DDP_SUCCESS && status == DDP_SUCCESS)
             {
                 status = function_status;
+                continue;
             }
-            continue;
+
+            /* Initialize created node */
+            function_status = initialize_adapter(&current_device);
+            if(function_status != DDP_SUCCESS && status == DDP_SUCCESS)
+            {
+                status = DDP_CANNOT_COMMUNICATE_ADAPTER;
+                continue;
+            }
+
+            is_vf = is_virtual_function(&current_device);
+            if(is_vf == TRUE)
+            {
+                if(check_command_parameter(DDP_ALL_ADAPTERS_PARAMETER_BIT) == FALSE)
+                {
+                    /* only with parameter -a tool works with virtual functions*/
+                    continue;
+                }
+
+                current_device.is_virtual_function = TRUE;
+                current_device.is_usable = FALSE; /* virtual function cannot be use for communicate with base driver */
+
+                if(last_physical_device.is_usable == TRUE)
+                {
+                    strcpy_sec(current_device.pf_connection_name,
+                                sizeof(current_device.pf_connection_name),
+                                last_physical_device.connection_name,
+                                strlen(last_physical_device.connection_name)); /* need for getting data by base driver */
+                    memcpy_sec(&current_device.pf_location,
+                                sizeof(current_device.pf_location),
+                                &last_physical_device.location,
+                                sizeof(last_physical_device.location));
+                    current_device.pf_device_id = last_physical_device.device_id;
+                    current_device.is_usable = TRUE; /* it's true if we have a connection name from physical function */
+                }
+            }
+
+            function_status = get_connection_name(&current_device);
+            if(function_status == DDP_SUCCESS)
+            {
+                current_device.is_usable = TRUE;
+            }
+            else
+            {
+                /* if the driver did not write connection name to sysfs
+                * we cannot use ioctl to communicate with that function */
+                current_device.is_usable = FALSE;
+                debug_ddp_print("get_connection_name error: 0x%X\n", function_status);
+                /* the adapter must be added to the adapter list, so the tool cannot skip this iteration of the loop */
+            }
+
+            if(is_vf == FALSE && current_device.is_usable == TRUE)
+            {
+                memcpy_sec(&last_physical_device, sizeof(adapter_t), &current_device, sizeof(adapter_t));
+            }
+
+            if(check_command_parameter(DDP_LOCATION_COMMAND_PARAMETER_BIT))
+            {
+                memcpy_sec(location_from_dir,
+                            PCI_LOCATION_STRING_SIZE,
+                            name_list[i]->d_name,
+                            PCI_LOCATION_STRING_SIZE);
+                compare_result = strncmp(interface_key, location_from_dir, PCI_LOCATION_STRING_SIZE);
+                if(compare_result != 0)
+                {
+                    continue;
+                }
+            }
+            else if(check_command_parameter(DDP_INTERFACE_COMMAND_PARAMETER_BIT) &&
+                    strlen(current_device.connection_name))
+            {
+                /* we need PF for VF */
+                compare_result = strcmp(interface_key, current_device.connection_name);
+                if(compare_result != 0)
+                {
+                    continue;
+                }
+            }
+
+            adapter = malloc_sec(sizeof(adapter_t));
+            if(adapter == NULL)
+            {
+                status = DDP_ALLOCATE_MEMORY_FAIL;
+                break;
+            }
+            memcpy_sec(adapter, sizeof(adapter_t), &current_device, sizeof(current_device));
+
+            /* Add node to the list */
+            debug_ddp_print("Adding to list device: 0x%X:0x%X:0x%X.0x%X\n",
+                            adapter->location.segment,
+                            adapter->location.bus,
+                            adapter->location.device,
+                            adapter->location.function);
+            function_status = add_node_data(adapter_list, (void*)adapter, sizeof(adapter_t));
+            if(function_status != DDP_SUCCESS)
+            {
+                if(status == DDP_SUCCESS)
+                {
+                    status = function_status;
+                }
+                continue;
+            }
+
+            if(compare_result == 0)
+            {
+                debug_ddp_print("Resetting status due to success in found adapter: 0x%X\n", status);
+                status = DDP_SUCCESS;
+                break; /* the provided device was found - skipping enumarete next devices */
+            }
         }
 
-        if(compare_result == 0)
+        if(status == DDP_SUCCESS                                        &&
+        adapter_list->number_of_nodes == 0                              &&
+        (check_command_parameter(DDP_INTERFACE_COMMAND_PARAMETER_BIT) ||
+         check_command_parameter(DDP_LOCATION_COMMAND_PARAMETER_BIT)))
         {
-            debug_ddp_print("Resetting status due to success in found adapter: 0x%X\n", status);
-            status = DDP_SUCCESS;
-            break; /* the provided device was found - skipping enumarete next devices */
+            status = DDP_DEVICE_NOT_FOUND;
         }
-    }
+        else if(status == DDP_SUCCESS && adapter_list->first_node == NULL)
+        {
+            status = DDP_NO_SUPPORTED_ADAPTER;
+        }
 
-    if(status == DDP_SUCCESS                                           &&
-       adapter_list->number_of_nodes == 0                              &&
-       (check_command_parameter(DDP_INTERFACE_COMMAND_PARAMETER_BIT) ||
-        check_command_parameter(DDP_LOCATION_COMMAND_PARAMETER_BIT)))
-    {
-        status = DDP_DEVICE_NOT_FOUND;
-    }
-    else if(status == DDP_SUCCESS && adapter_list->first_node == NULL)
-    {
-        status = DDP_NO_SUPPORTED_ADAPTER;
+        for(i = 0; i < items; i++)
+        {
+            free_memory(name_list[i]);
+        }
+        free_memory(name_list);
     }
 
     return status;
