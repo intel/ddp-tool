@@ -41,7 +41,8 @@ ifeq ($(type), debug)
 	CFLAGS+= -O0 -g
 else
 # High code optimization, perform some implicit buffer overflow checks, make all warnings errors
-	CFLAGS+= -O2 -D_FORTIFY_SOURCE=2 -Werror -Wl,-strip-debug
+	CFLAGS+= -O2 -D_FORTIFY_SOURCE=2 -Werror
+	LDFLAGS+= -Wl,-strip-debug
 endif
 
 # Add include directories of depentent libraries
